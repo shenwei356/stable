@@ -21,14 +21,13 @@ package table
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"math"
-	"strconv"
 	"strings"
+	"sync"
 
-	"github.com/dustin/go-humanize"
+	"github.com/mattn/go-runewidth"
 )
 
 type Align int
@@ -60,8 +59,6 @@ type Column struct {
 }
 
 type Table struct {
-	style *TableStyle
-
 	rows    [][]string // all rows, or buffered rows of the first bufRows lines
 	bufRows int        // the number of rows to determin the max/min width of each column
 
@@ -71,19 +68,30 @@ type Table struct {
 	hasHeader bool     // a flag to say the table has a header
 
 	// statistics of data in rows
-	minWidths     []int
-	maxWidths     []int
-	widthsChecked bool // a flag to indicate whether the min/max widths of each column is checked
+	minWidths     []int // min width of each column
+	maxWidths     []int // min width of each column
+	widthsChecked bool  // a flag to indicate whether the min/max widths of each column is checked
 
-	// options set by users
+	// global options set by users
 	align           Align
 	minWidth        int
 	maxWidth        int
+	wrapDelimiter   rune
+	splitConcat     string
 	wrapCell        bool
 	clipCell        bool
 	humanizeNumbers bool
 
-	writer *io.Writer
+	// so reused datastructure, for avoiding allocate objects repeatedly
+	rotate     [][]string  // just for wrapping a row
+	wrappedRow []*[]string // just for wrapping a row
+	slice      []string
+	wrapLocs   []int // position for wrapping
+	poolSlice  *sync.Pool
+
+	style *TableStyle // output style
+
+	writer *io.Writer // writer
 }
 
 func New() *Table {
@@ -140,6 +148,16 @@ func (t *Table) MaxWidth(w int) *Table {
 
 func (t *Table) WrapCell(v bool) *Table {
 	t.wrapCell = v
+	return t
+}
+
+func (t *Table) WrapDelimiter(d rune) *Table {
+	t.wrapDelimiter = d
+	return t
+}
+
+func (t *Table) SplitConcat(s string) *Table {
+	t.splitConcat = s
 	return t
 }
 
@@ -243,12 +261,138 @@ func (t *Table) AddRow(row []interface{}) error {
 	return nil
 }
 
-func alignText(text string, width int, align Align, alignGlobal Align) string {
-	a := align
-	if alignGlobal > 0 {
-		a = alignGlobal
+// the returned value indicate if any cells are wrapped
+func (t *Table) formatRow(row []string) bool {
+	// -------------------------------------------------------------
+	// initialize some data structures
+	if t.rotate == nil {
+		t.rotate = make([][]string, t.nColumns)
+		for i := range t.rotate {
+			t.rotate[i] = make([]string, 0, 8)
+		}
+	} else {
+		for i := range t.rotate {
+			t.rotate[i] = t.rotate[i][:0]
+		}
 	}
 
+	if t.wrappedRow == nil {
+		t.wrappedRow = make([]*[]string, 0, 8)
+	} else {
+		t.wrappedRow = t.wrappedRow[:0]
+	}
+
+	if t.poolSlice == nil {
+		t.poolSlice = &sync.Pool{New: func() interface{} {
+			tmp := make([]string, t.nColumns)
+			return &tmp
+		}}
+	}
+
+	if t.wrapDelimiter == 0 {
+		t.wrapDelimiter = ' '
+	}
+
+	// -------------------------------------------------------------
+
+	var needWrap = false
+	for i, c := range row {
+		if len(c) > t.maxWidths[i] {
+			needWrap = true
+		}
+	}
+	if !needWrap {
+		return false
+	}
+
+	// -------------------------------------------------------------
+	var maxWidth int
+	var w, width int
+	var r rune
+	if t.wrapLocs == nil {
+		t.wrapLocs = make([]int, 0, 8)
+	}
+
+	locs := t.wrapLocs // do not need locs = locs[:0] here
+	var i, j, ploc, loc int
+	var cell string
+	for i, cell = range row {
+		maxWidth = t.maxWidths[i]
+		if len(cell) <= maxWidth {
+			t.rotate[i] = append(t.rotate[i], cell)
+			continue
+		}
+
+		width = 0 // accumulative width
+		ploc = 0  // position of the previous space
+		locs = locs[:0]
+		for j, r = range cell {
+			w = runewidth.RuneWidth(r)
+
+			if r == '\n' { // force wrapping
+				locs = append(locs, j)
+				width = 0
+				ploc = 0
+				continue
+			}
+
+			if r == t.wrapDelimiter {
+				if width+w >= maxWidth {
+					locs = append(locs, ploc)
+					width = w
+					ploc = 0
+				} else {
+					ploc = j // position of the previous space
+					width += w
+				}
+				continue
+			}
+
+			width += w
+		}
+		if width >= maxWidth {
+			locs = append(locs, ploc)
+		}
+
+		ploc = -1
+		for _, loc = range locs {
+			t.rotate[i] = append(t.rotate[i], cell[ploc+1:loc])
+			ploc = loc
+		}
+		t.rotate[i] = append(t.rotate[i], cell[ploc+1:])
+	}
+
+	var maxRow int
+	for _, tmp := range t.rotate {
+		if len(tmp) > maxRow {
+			maxRow = len(tmp)
+		}
+	}
+
+	var row2 *[]string
+
+	for j = 0; j < maxRow; j++ {
+		row2 = t.poolSlice.Get().(*[]string)
+		for i = 0; i < t.nColumns; i++ {
+			if j+1 > len(t.rotate[i]) {
+				(*row2)[i] = ""
+			} else {
+				(*row2)[i] = t.rotate[i][j]
+			}
+		}
+		t.wrappedRow = append(t.wrappedRow, row2)
+	}
+
+	return true
+}
+
+func (t *Table) formatCell(text string, width int, align Align) string {
+	a := align
+	if t.align > 0 { // global align
+		a = align
+	}
+
+	// here, width need to be >= len(text)
 	switch a {
 	case AlignCenter:
 		n := (width - len(text)) / 2
@@ -270,20 +414,23 @@ func (t *Table) Render(style *TableStyle) []byte {
 	}
 
 	var buf bytes.Buffer
-	tmp := make([]string, t.nColumns)
-
+	if t.slice == nil {
+		t.slice = make([]string, t.nColumns)
+	}
+	slice := t.slice
 	// determin the maxWidth
 	t.checkWidths()
 
 	lenPad2 := len(style.Padding) * 2
+	var wrapped bool
 
 	// write the top line
 	if style.LineTop.Visible() {
 		buf.WriteString(style.LineTop.begin)
 		for i, M := range t.maxWidths {
-			tmp[i] = strings.Repeat(style.LineTop.hline, M+lenPad2)
+			slice[i] = strings.Repeat(style.LineTop.hline, M+lenPad2)
 		}
-		buf.WriteString(strings.Join(tmp, style.LineTop.sep))
+		buf.WriteString(strings.Join(slice, style.LineTop.sep))
 		buf.WriteString(style.LineTop.end)
 		buf.WriteString("\n")
 	}
@@ -292,9 +439,9 @@ func (t *Table) Render(style *TableStyle) []byte {
 	if t.hasHeader {
 		buf.WriteString(style.HeaderRow.begin)
 		for i, M := range t.maxWidths {
-			tmp[i] = style.Padding + alignText(t.columns[i].Header, M, t.columns[i].Align, t.align) + style.Padding
+			slice[i] = style.Padding + t.formatCell(t.columns[i].Header, M, t.columns[i].Align) + style.Padding
 		}
-		buf.WriteString(strings.Join(tmp, style.HeaderRow.sep))
+		buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
 		buf.WriteString(style.HeaderRow.end)
 		buf.WriteString("\n")
 
@@ -302,9 +449,9 @@ func (t *Table) Render(style *TableStyle) []byte {
 		if style.LineBelowHeader.Visible() {
 			buf.WriteString(style.LineBelowHeader.begin)
 			for i, M := range t.maxWidths {
-				tmp[i] = strings.Repeat(style.LineBelowHeader.hline, M+lenPad2)
+				slice[i] = strings.Repeat(style.LineBelowHeader.hline, M+lenPad2)
 			}
-			buf.WriteString(strings.Join(tmp, style.LineBelowHeader.sep))
+			buf.WriteString(strings.Join(slice, style.LineBelowHeader.sep))
 			buf.WriteString(style.LineBelowHeader.end)
 			buf.WriteString("\n")
 		}
@@ -313,23 +460,39 @@ func (t *Table) Render(style *TableStyle) []byte {
 	// write the row to writer
 	jLastLine := len(t.rows) - 1
 	hasLineBetweenRows := style.LineBetweenRows.Visible()
+	var row2 *[]string
 	for j, row := range t.rows {
 		// data row
-		buf.WriteString(style.DataRow.begin)
-		for i, M := range t.maxWidths {
-			tmp[i] = style.Padding + alignText(row[i], M, t.columns[i].Align, t.align) + style.Padding
+		wrapped = t.formatRow(row)
+		if wrapped {
+			for _, row2 = range t.wrappedRow {
+				buf.WriteString(style.DataRow.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
+				}
+				buf.WriteString(strings.Join(slice, style.DataRow.sep))
+				buf.WriteString(style.DataRow.end)
+				buf.WriteString("\n")
+
+				t.poolSlice.Put(row2)
+			}
+		} else {
+			buf.WriteString(style.DataRow.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = style.Padding + t.formatCell(row[i], M, t.columns[i].Align) + style.Padding
+			}
+			buf.WriteString(strings.Join(slice, style.DataRow.sep))
+			buf.WriteString(style.DataRow.end)
+			buf.WriteString("\n")
 		}
-		buf.WriteString(strings.Join(tmp, style.DataRow.sep))
-		buf.WriteString(style.DataRow.end)
-		buf.WriteString("\n")
 
 		// line between rows
 		if hasLineBetweenRows && j < jLastLine {
 			buf.WriteString(style.LineBetweenRows.begin)
 			for i, M := range t.maxWidths {
-				tmp[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
+				slice[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
 			}
-			buf.WriteString(strings.Join(tmp, style.LineBetweenRows.sep))
+			buf.WriteString(strings.Join(slice, style.LineBetweenRows.sep))
 			buf.WriteString(style.LineBetweenRows.end)
 			buf.WriteString("\n")
 		}
@@ -339,9 +502,9 @@ func (t *Table) Render(style *TableStyle) []byte {
 	if style.LineBottom.Visible() {
 		buf.WriteString(style.LineBottom.begin)
 		for i, M := range t.maxWidths {
-			tmp[i] = strings.Repeat(style.LineBottom.hline, M+lenPad2)
+			slice[i] = strings.Repeat(style.LineBottom.hline, M+lenPad2)
 		}
-		buf.WriteString(strings.Join(tmp, style.LineBottom.sep))
+		buf.WriteString(strings.Join(slice, style.LineBottom.sep))
 		buf.WriteString(style.LineBottom.end)
 		buf.WriteString("\n")
 	}
@@ -433,97 +596,4 @@ func (t *Table) Flush() error {
 
 	t.Flush()
 	return nil
-}
-
-// --------------------------------------------------------------------------
-// utilities
-
-// from https://github.com/tatsushid/go-prettytable
-func convertToString(v interface{}, addComma bool) (string, error) {
-	if addComma {
-		switch vv := v.(type) {
-		case fmt.Stringer:
-			return vv.String(), nil
-		case int:
-			return humanize.Comma(int64(vv)), nil
-		case int8:
-			return humanize.Comma(int64(vv)), nil
-		case int16:
-			return humanize.Comma(int64(vv)), nil
-		case int32:
-			return humanize.Comma(int64(vv)), nil
-		case int64:
-			return humanize.Comma(vv), nil
-		case uint:
-			return humanize.Comma(int64(vv)), nil
-		case uint8:
-			return humanize.Comma(int64(vv)), nil
-		case uint16:
-			return humanize.Comma(int64(vv)), nil
-		case uint32:
-			return humanize.Comma(int64(vv)), nil
-		case uint64:
-			return humanize.Comma(int64(vv)), nil
-		case float32:
-			return humanize.Commaf(float64(vv)), nil
-		case float64:
-			return humanize.Commaf(float64(vv)), nil
-		case bool:
-			return strconv.FormatBool(vv), nil
-		case string:
-			return vv, nil
-		case []byte:
-			return string(vv), nil
-		case []rune:
-			return string(vv), nil
-		default:
-			return "", errors.New("can't convert the value")
-		}
-	}
-
-	switch vv := v.(type) {
-	case fmt.Stringer:
-		return vv.String(), nil
-	case int:
-		return strconv.FormatInt(int64(vv), 10), nil
-	case int8:
-		return strconv.FormatInt(int64(vv), 10), nil
-	case int16:
-		return strconv.FormatInt(int64(vv), 10), nil
-	case int32:
-		return strconv.FormatInt(int64(vv), 10), nil
-	case int64:
-		return strconv.FormatInt(vv, 10), nil
-	case uint:
-		return strconv.FormatUint(uint64(vv), 10), nil
-	case uint8:
-		return strconv.FormatUint(uint64(vv), 10), nil
-	case uint16:
-		return strconv.FormatUint(uint64(vv), 10), nil
-	case uint32:
-		return strconv.FormatUint(uint64(vv), 10), nil
-	case uint64:
-		return strconv.FormatUint(vv, 10), nil
-	case float32:
-		return strconv.FormatFloat(float64(vv), 'g', -1, 32), nil
-	case float64:
-		return strconv.FormatFloat(vv, 'g', -1, 64), nil
-	case bool:
-		return strconv.FormatBool(vv), nil
-	case string:
-		return vv, nil
-	case []byte:
-		return string(vv), nil
-	case []rune:
-		return string(vv), nil
-	default:
-		return "", errors.New("can't convert the value")
-	}
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }

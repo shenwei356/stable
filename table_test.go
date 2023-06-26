@@ -25,7 +25,7 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	tbl := New().AlignLeft()
+	tbl := New().AlignLeft().MaxWidth(20)
 
 	tbl.SetHeader([]string{
 		"id",
@@ -33,8 +33,12 @@ func TestBasic(t *testing.T) {
 		"sentence",
 	})
 	tbl.AddRow([]interface{}{1, "Wei Shen", "How are you?"})
-	tbl.AddRow([]interface{}{2, "Fake Name", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+	tbl.AddRow([]interface{}{2, "Fake Name", "I'm fine, thank you. And you?"})
 	tbl.AddRow([]interface{}{3, "Tic Tac", "Doing great!"})
+
+	fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
+
+	return
 
 	for _, style := range []*TableStyle{
 		StylePlain,
