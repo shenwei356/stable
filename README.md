@@ -1,6 +1,6 @@
-# stable - simple yet pretty text table
+# stable - streaming pretty text table
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/table.svg)](https://pkg.go.dev/github.com/shenwei356/table)
+[![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/stable.svg)](https://pkg.go.dev/github.com/shenwei356/stable)
 
 ## Install
 
@@ -8,14 +8,14 @@
 
 ## Support
 
-Please [open an issue](https://github.com/shenwei356/table/issues) to report bugs,
+Please [open an issue](https://github.com/shenwei356/stable/issues) to report bugs,
 propose new functions or ask for help.
 
 ## License
 
 Copyright (c) 2023, Wei Shen (shenwei356@gmail.com)
 
-[MIT License](https://github.com/shenwei356/table/blob/master/LICENSE)
+[MIT License](https://github.com/shenwei356/stable/blob/master/LICENSE)
 
 ## Alternate packages
 

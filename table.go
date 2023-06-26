@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package table
+package stable
 
 import (
 	"bytes"
@@ -107,7 +107,7 @@ func (t *Table) Style(style *TableStyle) *Table {
 	return t
 }
 
-var ErrInvalidAlign = fmt.Errorf("table: invalid align value")
+var ErrInvalidAlign = fmt.Errorf("stable: invalid align value")
 
 func (t *Table) AlignLeft() *Table {
 	t.align = AlignLeft
@@ -172,7 +172,7 @@ func (t *Table) HumanizeNumbers(v bool) *Table {
 }
 
 // --------------------------------------------------------------------------
-var ErrSetHeaderAfterDataAdded = fmt.Errorf("table: setting header is not allowed after some data being added")
+var ErrSetHeaderAfterDataAdded = fmt.Errorf("stable: setting header is not allowed after some data being added")
 
 func (t *Table) SetHeader(headers []string) (*Table, error) {
 	if t.dataAdded {
@@ -199,7 +199,7 @@ func (t *Table) SetHeaderWithFormat(headers []Column) (*Table, error) {
 	return t, nil
 }
 
-var ErrLongRow = fmt.Errorf("table: the added row has too many columns")
+var ErrLongRow = fmt.Errorf("stable: the added row has too many columns")
 
 func (t *Table) parseRow(row []interface{}) ([]string, error) {
 	_row := make([]string, len(row))
@@ -512,7 +512,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 	return buf.Bytes()
 }
 
-var ErrNoDataAdded = fmt.Errorf("table: no data added")
+var ErrNoDataAdded = fmt.Errorf("stable: no data added")
 
 func (t *Table) checkWidths() error {
 	if t.hasHeader && !t.dataAdded {
@@ -575,7 +575,7 @@ func (t *Table) checkWidths() error {
 
 // --------------------------------------------------------------------------
 
-var ErrWriterRepeatedlySet = fmt.Errorf("table: writer repeatedly set")
+var ErrWriterRepeatedlySet = fmt.Errorf("stable: writer repeatedly set")
 
 // SetWriter sets a writer for render the table, the first bufRows rows will
 // be used to determin the maximum width for each cell if they are not defined
