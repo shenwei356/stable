@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-package ptable
+package stable
 
 import (
 	"fmt"
@@ -25,7 +25,7 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	tbl := New().AlignLeft().MaxWidth(20)
+	tbl := New().AlignLeft().MaxWidth(20) //.ClipCell("...")
 
 	tbl.SetHeader([]string{
 		"id",
@@ -33,12 +33,11 @@ func TestBasic(t *testing.T) {
 		"sentence",
 	})
 	tbl.AddRow([]interface{}{1, "Wei Shen", "How are you?"})
-	tbl.AddRow([]interface{}{2, "Fake Name", "I'm fine, thank you. And you?"})
-	tbl.AddRow([]interface{}{3, "Tic Tac", "Doing great!"})
+	tbl.AddRow([]interface{}{2, "沈 伟", "I'm fine, thank you. And you?"})
+	tbl.AddRow([]interface{}{3, "沈伟", "谢谢，我很好，你呢？"})
 
-	fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
-
-	return
+	// fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
+	// return
 
 	for _, style := range []*TableStyle{
 		StylePlain,

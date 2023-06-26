@@ -26,6 +26,7 @@ import (
 	"math"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/mattn/go-runewidth"
 )
@@ -77,16 +78,14 @@ type Table struct {
 	minWidth        int
 	maxWidth        int
 	wrapDelimiter   rune
-	splitConcat     string
-	wrapCell        bool
 	clipCell        bool
+	clipMark        string
 	humanizeNumbers bool
 
 	// so reused datastructure, for avoiding allocate objects repeatedly
 	rotate     [][]string  // just for wrapping a row
 	wrappedRow []*[]string // just for wrapping a row
 	slice      []string
-	wrapLocs   []int // position for wrapping
 	poolSlice  *sync.Pool
 
 	style *TableStyle // output style
@@ -146,23 +145,14 @@ func (t *Table) MaxWidth(w int) *Table {
 	return t
 }
 
-func (t *Table) WrapCell(v bool) *Table {
-	t.wrapCell = v
-	return t
-}
-
 func (t *Table) WrapDelimiter(d rune) *Table {
 	t.wrapDelimiter = d
 	return t
 }
 
-func (t *Table) SplitConcat(s string) *Table {
-	t.splitConcat = s
-	return t
-}
-
-func (t *Table) ClipCell(v bool) *Table {
-	t.clipCell = v
+func (t *Table) ClipCell(mark string) *Table {
+	t.clipCell = true
+	t.clipMark = mark
 	return t
 }
 
@@ -306,16 +296,17 @@ func (t *Table) formatRow(row []string) bool {
 	}
 
 	// -------------------------------------------------------------
-	var maxWidth int
-	var w, width int
-	var r rune
-	if t.wrapLocs == nil {
-		t.wrapLocs = make([]int, 0, 8)
-	}
 
-	locs := t.wrapLocs // do not need locs = locs[:0] here
-	var i, j, ploc, loc int
+	var maxWidth int
+	var w int
+	var r rune
+
+	var i, j int
 	var cell string
+	var workingLine string
+	var spacePos charPos
+	var lastPos charPos
+	lenClipMark := len(t.clipMark)
 	for i, cell = range row {
 		maxWidth = t.maxWidths[i]
 		if len(cell) <= maxWidth {
@@ -323,43 +314,70 @@ func (t *Table) formatRow(row []string) bool {
 			continue
 		}
 
-		width = 0 // accumulative width
-		ploc = 0  // position of the previous space
-		locs = locs[:0]
-		for j, r = range cell {
-			w = runewidth.RuneWidth(r)
-
-			if r == '\n' { // force wrapping
-				locs = append(locs, j)
-				width = 0
-				ploc = 0
-				continue
+		if t.clipCell && len(cell) > maxWidth {
+			if lenClipMark > maxWidth {
+				t.clipMark = ""
+				lenClipMark = len(t.clipMark)
 			}
+			t.rotate[i] = append(t.rotate[i], cell[0:maxWidth-lenClipMark]+t.clipMark)
+			continue
+		}
+
+		// modify from https://github.com/donatj/wordwrap
+		//
+		// SplitString splits a string at a certain number of bytes without breaking
+		// UTF-8 runes and on Unicode space characters when possible.
+		//
+		// SplitString will panic if it is forced to split a multibyte rune.
+		//
+		// For example if the rune `し` (3 bytes) is given, yet we ask it to break on a
+		// byte limit of 2, it will panic.
+		workingLine = ""
+		spacePos.pos = 0
+		spacePos.size = 0
+		lastPos.pos = 0
+		lastPos.size = 0
+
+		for _, r = range cell {
+			w = utf8.RuneLen(r)
+
+			workingLine += string(r)
 
 			if r == t.wrapDelimiter {
-				if width+w >= maxWidth {
-					locs = append(locs, ploc)
-					width = w
-					ploc = 0
-				} else {
-					ploc = j // position of the previous space
-					width += w
-				}
-				continue
+				spacePos.pos = len(workingLine)
+				spacePos.size = w
 			}
 
-			width += w
-		}
-		if width >= maxWidth {
-			locs = append(locs, ploc)
+			if len(workingLine) >= maxWidth {
+				if spacePos.size > 0 {
+					t.rotate[i] = append(t.rotate[i], workingLine[0:spacePos.pos])
+
+					workingLine = workingLine[spacePos.pos:]
+				} else {
+					if len(workingLine) > maxWidth {
+						t.rotate[i] = append(t.rotate[i], workingLine[0:lastPos.pos])
+						workingLine = workingLine[lastPos.pos:]
+					} else {
+						t.rotate[i] = append(t.rotate[i], workingLine)
+						workingLine = ""
+					}
+				}
+
+				if len(t.rotate[i][len(t.rotate[i])-1]) > maxWidth {
+					panic("attempted to cut character")
+				}
+
+				spacePos.pos = 0
+				spacePos.size = 0
+			}
+
+			lastPos.pos = len(workingLine)
+			lastPos.size = w
 		}
 
-		ploc = -1
-		for _, loc = range locs {
-			t.rotate[i] = append(t.rotate[i], cell[ploc+1:loc])
-			ploc = loc
+		if workingLine != "" {
+			t.rotate[i] = append(t.rotate[i], workingLine)
 		}
-		t.rotate[i] = append(t.rotate[i], cell[ploc+1:])
 	}
 
 	var maxRow int
@@ -386,6 +404,10 @@ func (t *Table) formatRow(row []string) bool {
 	return true
 }
 
+type charPos struct {
+	pos, size int
+}
+
 func (t *Table) formatCell(text string, width int, align Align) string {
 	a := align
 	if t.align > 0 { // global align
@@ -393,16 +415,20 @@ func (t *Table) formatCell(text string, width int, align Align) string {
 	}
 
 	// here, width need to be >= len(text)
+	if width-runewidth.StringWidth(text) < 0 {
+		panic("please contact the author")
+	}
+
 	switch a {
 	case AlignCenter:
-		n := (width - len(text)) / 2
-		return strings.Repeat(" ", n) + text + strings.Repeat(" ", width-len(text)-n)
+		n := (width - runewidth.StringWidth(text)) / 2
+		return strings.Repeat(" ", n) + text + strings.Repeat(" ", width-runewidth.StringWidth(text)-n)
 	case AlignLeft:
-		return text + strings.Repeat(" ", width-len(text))
+		return text + strings.Repeat(" ", width-runewidth.StringWidth(text))
 	case AlignRight:
-		return strings.Repeat(" ", width-len(text)) + text
+		return strings.Repeat(" ", width-runewidth.StringWidth(text)) + text
 	}
-	return text + strings.Repeat(" ", width-len(text))
+	return text + strings.Repeat(" ", width-runewidth.StringWidth(text))
 }
 
 func (t *Table) Render(style *TableStyle) []byte {
@@ -436,14 +462,34 @@ func (t *Table) Render(style *TableStyle) []byte {
 	}
 
 	// write the header
+	var row2 *[]string
 	if t.hasHeader {
-		buf.WriteString(style.HeaderRow.begin)
-		for i, M := range t.maxWidths {
-			slice[i] = style.Padding + t.formatCell(t.columns[i].Header, M, t.columns[i].Align) + style.Padding
+		row := make([]string, t.nColumns)
+		for i, c := range t.columns {
+			row[i] = c.Header
 		}
-		buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
-		buf.WriteString(style.HeaderRow.end)
-		buf.WriteString("\n")
+		wrapped = t.formatRow(row)
+		if wrapped {
+			for _, row2 = range t.wrappedRow {
+				buf.WriteString(style.HeaderRow.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
+				}
+				buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
+				buf.WriteString(style.HeaderRow.end)
+				buf.WriteString("\n")
+
+				t.poolSlice.Put(row2)
+			}
+		} else {
+			buf.WriteString(style.HeaderRow.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = style.Padding + t.formatCell(row[i], M, t.columns[i].Align) + style.Padding
+			}
+			buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
+			buf.WriteString(style.HeaderRow.end)
+			buf.WriteString("\n")
+		}
 
 		// line belowHeader
 		if style.LineBelowHeader.Visible() {
@@ -460,7 +506,6 @@ func (t *Table) Render(style *TableStyle) []byte {
 	// write the row to writer
 	jLastLine := len(t.rows) - 1
 	hasLineBetweenRows := style.LineBetweenRows.Visible()
-	var row2 *[]string
 	for j, row := range t.rows {
 		// data row
 		wrapped = t.formatRow(row)
@@ -558,6 +603,9 @@ func (t *Table) checkWidths() error {
 		}
 		if t.maxWidth > 0 && t.maxWidth < t.maxWidths[i] { // use user defined global threshold
 			t.maxWidths[i] = t.maxWidth
+		}
+		if t.maxWidths[i] < 5 {
+			t.maxWidths[i] = 5
 		}
 
 		if c.MinWidth > 0 && c.MinWidth > t.minWidths[i] { // use user defined threshold
