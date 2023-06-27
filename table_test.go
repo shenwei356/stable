@@ -26,19 +26,18 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	tbl := New().HumanizeNumbers().MaxWidth(20) //.ClipCell("...")
+	tbl := New().HumanizeNumbers().MaxWidth(40)
 
 	tbl.Header([]string{
-		"number",
+		"id",
 		"name",
 		"sentence",
 	})
-	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-	tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
-	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+	tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+	tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
-	// fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
-	// return
+	// fmt.Printf("%s\n", tbl.Render(StyleGrid))
 
 	for _, style := range []*TableStyle{
 		StylePlain,
@@ -52,22 +51,38 @@ func TestBasic(t *testing.T) {
 	}
 }
 
+func TestUnicode(t *testing.T) {
+	tbl := New().HumanizeNumbers().MaxWidth(20) //.ClipCell("...")
+
+	tbl.Header([]string{
+		"id",
+		"name",
+		"sentence",
+	})
+	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
+	tbl.AddRow([]interface{}{1000, "沈 伟", "I'm fine, thank you. And you?"})
+	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+
+	fmt.Printf("%s\n", tbl.Render(StyleGrid))
+}
+
 func TestCustomColumns(t *testing.T) {
 	tbl := New()
 
 	tbl.HeaderWithFormat([]Column{
-		{Header: "number", MinWidth: 10, MaxWidth: 15, HumanizeNumbers: true, Align: AlignRight},
+		{Header: "number", MinWidth: 5, MaxWidth: 10, HumanizeNumbers: true, Align: AlignRight},
 		{Header: "name", MinWidth: 10, MaxWidth: 16, Align: AlignCenter},
-		{Header: "sentence", MaxWidth: 20, Align: AlignLeft},
+		{Header: "sentence", MaxWidth: 40, Align: AlignLeft},
 	})
-	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-	tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
-	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+	tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+	tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
-	fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
+	fmt.Printf("%s\n", tbl.Render(StyleGrid))
 }
+
 func TestStreaming(t *testing.T) {
-	tbl := New().AlignLeft().HumanizeNumbers()
+	tbl := New().MinWidth(10)
 
 	// write to stdout, and determine the max width according to the first row
 	tbl.Writer(os.Stdout, 1)
@@ -80,9 +95,9 @@ func TestStreaming(t *testing.T) {
 	})
 
 	// when a new row is added, it writes to stdout immediately.
-	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-	tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
-	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+	tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+	tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
 	// flush the remaining data
 	tbl.Flush()

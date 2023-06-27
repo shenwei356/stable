@@ -2,6 +2,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/stable.svg)](https://pkg.go.dev/github.com/shenwei356/stable)
 
+
+Table of Contents
+
 * [Features](#features)
 * [Install](#install)
 * [Examples](#examples)
@@ -12,9 +15,9 @@
 
 ## Features
 
-- **Supporting streaming output**.
+- **Supporting streaming output** (optional).
 
-  A newly added row is formatted and written to the configured writer immediately.
+  When a writer is configured, a newly added row is formatted and written to the writer immediately.
   It is memory-effective for a large number of rows.
   And it is helpful to pipe the data in shell.
 
@@ -24,7 +27,9 @@
 
 - **Configured table styles**.
 
-  Some preset styles are also provided.
+  Some [preset styles](#styles) are also provided.
+
+- **Unicode supported**
 
 ## Install
 
@@ -32,83 +37,119 @@
 
 ## Examples
 
-<p style="color:Tomato;">Note that the output is well-formatted in the terminal.
-However, rows containing Unicode are not displayed appropriately in text editors.</p>
+**Note that the output is well-formatted in the terminal.
+However, rows containing Unicode are not displayed appropriately in text editors and browsers.**
 
 1. Basic usages.
 
-        tbl := New().AlignLeft().HumanizeNumbers().MaxWidth(20) //.ClipCell("...")
+        tbl := New().HumanizeNumbers().MaxWidth(40)
 
         tbl.Header([]string{
-            "number",
+            "id",
+            "name",
+            "sentence",
+        })
+        tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+        tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+        tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
+
+        fmt.Printf("%s\n", tbl.Render(StyleGrid))
+
+        +-----------+--------------------+------------------------------------------+
+        | id        | name               | sentence                                 |
+        +===========+====================+==========================================+
+        | 100       | Donec Vitae        | Quis autem vel eum iure reprehenderit    |
+        |           |                    | qui in ea voluptate velit esse.          |
+        +-----------+--------------------+------------------------------------------+
+        | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
+        +-----------+--------------------+------------------------------------------+
+        | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
+        |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
+        |           |                    | tempus, tellus eget condimentum          |
+        |           |                    | rhoncus, sem quam semper libero.         |
+        +-----------+--------------------+------------------------------------------+
+
+1. Unicode.
+
+        tbl := New().HumanizeNumbers().MaxWidth(20) //.ClipCell("...")
+
+        tbl.Header([]string{
+            "id",
             "name",
             "sentence",
         })
         tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-        tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
+        tbl.AddRow([]interface{}{1000, "沈 伟", "I'm fine, thank you. And you?"})
         tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
 
-        fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
+        fmt.Printf("%s\n", tbl.Render(StyleGrid))
 
         style: grid
         +---------+----------+----------------------+
-        | number  | name     | sentence             |
+        | id      | name     | sentence             |
         +=========+==========+======================+
         | 100     | Wei Shen | How are you?         |
         +---------+----------+----------------------+
-        | 1,000.1 | 沈 伟    | I'm fine, thank      |
+        | 1,000   | 沈 伟    | I'm fine, thank      |
         |         |          | you. And you?        |
         +---------+----------+----------------------+
         | 100,000 | 沈伟     | 谢谢，我很好         |
         |         |          | ，你呢？             |
         +---------+----------+----------------------+
 
+     ![](screenshot1.png)
+
         // clipping text instead of wrapping
 
-        fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.ClipCell("...").Render(StyleGrid))
+        fmt.Printf("%s\n", tbl.ClipCell("...").Render(StyleGrid))
 
-        style: grid
         +---------+----------+----------------------+
-        | number  | name     | sentence             |
+        | id      | name     | sentence             |
         +=========+==========+======================+
         | 100     | Wei Shen | How are you?         |
         +---------+----------+----------------------+
-        | 1,000.1 | 沈 伟    | I'm fine, thank y... |
+        | 1,000   | 沈 伟    | I'm fine, thank y... |
         +---------+----------+----------------------+
         | 100,000 | 沈伟     | 谢谢，我很好，你呢？ |
         +---------+----------+----------------------+
+
+    ![](screenshot2.png)
+
 
 1. Custom columns format.
 
         tbl := New()
 
         tbl.HeaderWithFormat([]Column{
-            {Header: "number", MinWidth: 10, MaxWidth: 15, HumanizeNumbers: true, Align: AlignRight},
+            {Header: "number", MinWidth: 5, MaxWidth: 10, HumanizeNumbers: true, Align: AlignRight},
             {Header: "name", MinWidth: 10, MaxWidth: 16, Align: AlignCenter},
-            {Header: "sentence", MaxWidth: 20, Align: AlignLeft},
+            {Header: "sentence", MaxWidth: 40, Align: AlignLeft},
         })
-        tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-        tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
-        tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+        tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+        tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+        tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
-        fmt.Printf("style: %s\n%s\n", StyleGrid.Name, tbl.Render(StyleGrid))
+        fmt.Printf("%s\n", tbl.Render(StyleGrid))
 
-        +------------+------------+----------------------+
-        |     number |    name    | sentence             |
-        +============+============+======================+
-        |        100 |  Wei Shen  | How are you?         |
-        +------------+------------+----------------------+
-        |    1,000.1 |   沈 伟    | I'm fine, thank      |
-        |            |            | you. And you?        |
-        +------------+------------+----------------------+
-        |    100,000 |    沈伟    | 谢谢，我很好         |
-        |            |            | ，你呢？             |
-        +------------+------------+----------------------+
+        +-----------+------------------+------------------------------------------+
+        |    number |       name       | sentence                                 |
+        +===========+==================+==========================================+
+        |       100 |   Donec Vitae    | Quis autem vel eum iure reprehenderit    |
+        |           |                  | qui in ea voluptate velit esse.          |
+        +-----------+------------------+------------------------------------------+
+        |     2,000 |     Quaerat      | At vero eos et accusamus et iusto odio.  |
+        |           |    Voluptatem    |                                          |
+        +-----------+------------------+------------------------------------------+
+        | 3,000,000 |  Aliquam lorem   | Curabitur ullamcorper ultricies nisi.    |
+        |           |                  | Nam eget dui. Etiam rhoncus. Maecenas    |
+        |           |                  | tempus, tellus eget condimentum          |
+        |           |                  | rhoncus, sem quam semper libero.         |
+        +-----------+------------------+------------------------------------------+
 
 
 1. Streaming the output, i.e., a newly added row is formatted and written to the configured writer immediately.
 
-        tbl := New().AlignLeft().HumanizeNumbers()
+        tbl := New().MinWidth(10)
 
         // write to stdout, and determine the max width according to the first row
         tbl.Writer(os.Stdout, 1)
@@ -121,30 +162,30 @@ However, rows containing Unicode are not displayed appropriately in text editors
         })
 
         // when a new row is added, it writes to stdout immediately.
-        tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
-        tbl.AddRow([]interface{}{1000.1, "沈 伟", "I'm fine, thank you. And you?"})
-        tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+        tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
+        tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+        tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
         // flush the remaining data
         tbl.Flush()
 
 
-        +--------+----------+--------------+
-        | number | name     | sentence     |
-        +========+==========+==============+
-        | 100    | Wei Shen | How are you? |
-        +--------+----------+--------------+
-        | 1,000. | 沈 伟    | I'm fine,    |
-        | 1      |          | thank you.   |
-        |        |          | And you?     |
-        +--------+----------+--------------+
-        | 100,00 | 沈伟     | 谢谢，我     |
-        | 0      |          | 很好，你     |
-        |        |          | 呢？         |
-        +--------+----------+--------------+
+        +------------+-------------+-----------------------------------------------------------------------+
+        | number     | name        | sentence                                                              |
+        +============+=============+=======================================================================+
+        | 100        | Donec Vitae | Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse. |
+        +------------+-------------+-----------------------------------------------------------------------+
+        | 2000       | Quaerat     | At vero eos et accusamus et iusto odio.                               |
+        |            | Voluptatem  |                                                                       |
+        +------------+-------------+-----------------------------------------------------------------------+
+        | 3000000    | Aliquam     | Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus.    |
+        |            | lorem       | Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper     |
+        |            |             | libero.                                                               |
+        +------------+-------------+-----------------------------------------------------------------------+
 
 
 1. Custom delimiter for wrapping text.
+  In this example, `complete lineage` contains a list of words joined with `;`.
 
         tbl := New()
 
@@ -185,79 +226,91 @@ However, rows containing Unicode are not displayed appropriately in text editors
 
 ## Styles
 
-<p style="color:Tomato;">Note that the output is well-formatted in the terminal.
-However, rows containing Unicode are not displayed appropriately in text editors.</p>
+**Note that the output is well-formatted in the terminal.
+However, rows containing Unicode are not displayed appropriately in text editors and browsers.**
 
     style: plain
-    number    name       sentence
-    100       Wei Shen   How are you?
-    1,000.1   沈 伟      I'm fine, thank
-                        you. And you?
-    100,000   沈伟       谢谢，我很好
-                        ，你呢？
+    id          name                 sentence
+    100         Donec Vitae          Quis autem vel eum iure reprehenderit
+                                     qui in ea voluptate velit esse.
+    2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
+    3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
+                                     Nam eget dui. Etiam rhoncus. Maecenas
+                                     tempus, tellus eget condimentum
+                                     rhoncus, sem quam semper libero.
 
     style: simple
-    -------------------------------------------
-    number    name       sentence
-    -------------------------------------------
-    100       Wei Shen   How are you?
-    1,000.1   沈 伟      I'm fine, thank
-                        you. And you?
-    100,000   沈伟       谢谢，我很好
-                        ，你呢？
-    -------------------------------------------
+    ---------------------------------------------------------------------------
+    id          name                 sentence
+    ---------------------------------------------------------------------------
+    100         Donec Vitae          Quis autem vel eum iure reprehenderit
+                                    qui in ea voluptate velit esse.
+    2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
+    3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
+                                    Nam eget dui. Etiam rhoncus. Maecenas
+                                    tempus, tellus eget condimentum
+                                    rhoncus, sem quam semper libero.
+    ---------------------------------------------------------------------------
 
     style: grid
-    +---------+----------+----------------------+
-    | number  | name     | sentence             |
-    +=========+==========+======================+
-    | 100     | Wei Shen | How are you?         |
-    +---------+----------+----------------------+
-    | 1,000.1 | 沈 伟    | I'm fine, thank      |
-    |         |          | you. And you?        |
-    +---------+----------+----------------------+
-    | 100,000 | 沈伟     | 谢谢，我很好         |
-    |         |          | ，你呢？             |
-    +---------+----------+----------------------+
+    +-----------+--------------------+------------------------------------------+
+    | id        | name               | sentence                                 |
+    +===========+====================+==========================================+
+    | 100       | Donec Vitae        | Quis autem vel eum iure reprehenderit    |
+    |           |                    | qui in ea voluptate velit esse.          |
+    +-----------+--------------------+------------------------------------------+
+    | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
+    +-----------+--------------------+------------------------------------------+
+    | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
+    |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
+    |           |                    | tempus, tellus eget condimentum          |
+    |           |                    | rhoncus, sem quam semper libero.         |
+    +-----------+--------------------+------------------------------------------+
 
     style: light
-    ┌---------┬----------┬----------------------┐
-    | number  | name     | sentence             |
-    ├=========┼==========┼======================┤
-    | 100     | Wei Shen | How are you?         |
-    ├---------┼----------┼----------------------┤
-    | 1,000.1 | 沈 伟    | I'm fine, thank      |
-    |         |          | you. And you?        |
-    ├---------┼----------┼----------------------┤
-    | 100,000 | 沈伟     | 谢谢，我很好         |
-    |         |          | ，你呢？             |
-    └---------┴----------┴----------------------┘
+    ┌-----------┬--------------------┬------------------------------------------┐
+    | id        | name               | sentence                                 |
+    ├===========┼====================┼==========================================┤
+    | 100       | Donec Vitae        | Quis autem vel eum iure reprehenderit    |
+    |           |                    | qui in ea voluptate velit esse.          |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
+    |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
+    |           |                    | tempus, tellus eget condimentum          |
+    |           |                    | rhoncus, sem quam semper libero.         |
+    └-----------┴--------------------┴------------------------------------------┘
 
     style: bold
-    ┏━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
-    ┃ number  ┃ name     ┃ sentence             ┃
-    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-    ┃ 100     ┃ Wei Shen ┃ How are you?         ┃
-    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-    ┃ 1,000.1 ┃ 沈 伟    ┃ I'm fine, thank      ┃
-    ┃         ┃          ┃ you. And you?        ┃
-    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-    ┃ 100,000 ┃ 沈伟     ┃ 谢谢，我很好         ┃
-    ┃         ┃          ┃ ，你呢？             ┃
-    ┗━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━┛
+    ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ id        ┃ name               ┃ sentence                                 ┃
+    ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 100       ┃ Donec Vitae        ┃ Quis autem vel eum iure reprehenderit    ┃
+    ┃           ┃                    ┃ qui in ea voluptate velit esse.          ┃
+    ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 2,000     ┃ Quaerat Voluptatem ┃ At vero eos et accusamus et iusto odio.  ┃
+    ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 3,000,000 ┃ Aliquam lorem      ┃ Curabitur ullamcorper ultricies nisi.    ┃
+    ┃           ┃                    ┃ Nam eget dui. Etiam rhoncus. Maecenas    ┃
+    ┃           ┃                    ┃ tempus, tellus eget condimentum          ┃
+    ┃           ┃                    ┃ rhoncus, sem quam semper libero.         ┃
+    ┗━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
     style: double
-    ╔═════════╦══════════╦══════════════════════╗
-    ║ number  ║ name     ║ sentence             ║
-    ╠═════════╬══════════╬══════════════════════╣
-    ║ 100     ║ Wei Shen ║ How are you?         ║
-    ╠═════════╬══════════╬══════════════════════╣
-    ║ 1,000.1 ║ 沈 伟    ║ I'm fine, thank      ║
-    ║         ║          ║ you. And you?        ║
-    ╠═════════╬══════════╬══════════════════════╣
-    ║ 100,000 ║ 沈伟     ║ 谢谢，我很好         ║
-    ║         ║          ║ ，你呢？             ║
-    ╚═════════╩══════════╩══════════════════════╝
+    ╔═══════════╦════════════════════╦══════════════════════════════════════════╗
+    ║ id        ║ name               ║ sentence                                 ║
+    ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
+    ║ 100       ║ Donec Vitae        ║ Quis autem vel eum iure reprehenderit    ║
+    ║           ║                    ║ qui in ea voluptate velit esse.          ║
+    ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
+    ║ 2,000     ║ Quaerat Voluptatem ║ At vero eos et accusamus et iusto odio.  ║
+    ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
+    ║ 3,000,000 ║ Aliquam lorem      ║ Curabitur ullamcorper ultricies nisi.    ║
+    ║           ║                    ║ Nam eget dui. Etiam rhoncus. Maecenas    ║
+    ║           ║                    ║ tempus, tellus eget condimentum          ║
+    ║           ║                    ║ rhoncus, sem quam semper libero.         ║
+    ╚═══════════╩════════════════════╩══════════════════════════════════════════╝
 
 
 ## Support
