@@ -131,20 +131,21 @@ However, rows containing Unicode are not displayed appropriately in text editors
 
         fmt.Printf("%s\n", tbl.Render(StyleGrid))
 
-        +-----------+------------------+------------------------------------------+
-        |    number |       name       | sentence                                 |
-        +===========+==================+==========================================+
-        |       100 |   Donec Vitae    | Quis autem vel eum iure reprehenderit    |
-        |           |                  | qui in ea voluptate velit esse.          |
-        +-----------+------------------+------------------------------------------+
-        |     2,000 |     Quaerat      | At vero eos et accusamus et iusto odio.  |
-        |           |    Voluptatem    |                                          |
-        +-----------+------------------+------------------------------------------+
-        | 3,000,000 |  Aliquam lorem   | Curabitur ullamcorper ultricies nisi.    |
-        |           |                  | Nam eget dui. Etiam rhoncus. Maecenas    |
-        |           |                  | tempus, tellus eget condimentum          |
-        |           |                  | rhoncus, sem quam semper libero.         |
-        +-----------+------------------+------------------------------------------+
+        +------------+-----------------+------------------------------------------+
+        |     number |      name       | sentence                                 |
+        +============+=================+==========================================+
+        |        100 |   Donec Vitae   | Quis autem vel eum iure reprehenderit    |
+        |            |                 | qui in ea voluptate velit esse.          |
+        +------------+-----------------+------------------------------------------+
+        |      2,000 |    Quaerat      | At vero eos et accusamus et iusto odio.  |
+        |            |   Voluptatem    |                                          |
+        +------------+-----------------+------------------------------------------+
+        |  3,000,000 |  Aliquam lorem  | Curabitur ullamcorper ultricies nisi.    |
+        |            |                 | Nam eget dui. Etiam rhoncus. Maecenas    |
+        |            |                 | tempus, tellus eget condimentum          |
+        |            |                 | rhoncus, sem quam semper libero.         |
+        +------------+-----------------+------------------------------------------+
+
 
 
 1. Streaming the output, i.e., a newly added row is formatted and written to the configured writer immediately.

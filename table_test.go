@@ -70,8 +70,8 @@ func TestCustomColumns(t *testing.T) {
 	tbl := New()
 
 	tbl.HeaderWithFormat([]Column{
-		{Header: "number", MinWidth: 5, MaxWidth: 10, HumanizeNumbers: true, Align: AlignRight},
-		{Header: "name", MinWidth: 10, MaxWidth: 16, Align: AlignCenter},
+		{Header: "number", MinWidth: 10, MaxWidth: 15, HumanizeNumbers: true, Align: AlignRight},
+		{Header: "name", MinWidth: 10, MaxWidth: 15, Align: AlignCenter},
 		{Header: "sentence", MaxWidth: 40, Align: AlignLeft},
 	})
 	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})

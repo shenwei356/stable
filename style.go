@@ -34,23 +34,23 @@ type TableStyle struct {
 }
 
 type LineStyle struct {
-	begin string
-	hline string
-	sep   string
-	end   string
+	Begin string
+	Hline string
+	Sep   string
+	End   string
 }
 
 func (s LineStyle) Visible() bool {
-	if s.begin != "" || s.hline != "" || s.sep != "" || s.end != "" {
+	if s.Begin != "" || s.Hline != "" || s.Sep != "" || s.End != "" {
 		return true
 	}
 	return false
 }
 
 type RowStyle struct {
-	begin string
-	sep   string
-	end   string
+	Begin string
+	Sep   string
+	End   string
 }
 
 var StylePlain = &TableStyle{
