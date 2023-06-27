@@ -1,4 +1,4 @@
-module github.com/shenwei356/table
+module github.com/shenwei356/stable
 
 go 1.17
 
