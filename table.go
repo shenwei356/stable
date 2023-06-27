@@ -31,6 +31,7 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+// Align is the type of text alignment. Actually, there are only 3 values.
 type Align int
 
 const (
@@ -47,21 +48,25 @@ func (a Align) String() string {
 		return "left"
 	case AlignRight:
 		return "right"
+	default:
+		return "unknown"
 	}
-	return "unknown"
 }
 
+// Column is the configuration of a column.
 type Column struct {
-	Header string
-	Align  Align
+	Header string // column name
+	Align  Align  // text align
 
-	MinWidth int
-	MaxWidth int
+	MinWidth int // minimum width
+	MaxWidth int // maximum width, it will be overrided by the global MaxWidth of the table
+
+	HumanizeNumbers bool // add comma to numbers, for example 1000 -> 1,000
 }
 
+// Table is the table struct.
 type Table struct {
-	rows    [][]string // all rows, or buffered rows of the first bufRows lines
-	bufRows int        // the number of rows to determin the max/min width of each column
+	rows [][]string // all rows, or buffered rows of the first bufRows lines when writer is set
 
 	columns   []Column // configuration of each column
 	nColumns  int      // the number of the header or the first row
@@ -74,25 +79,33 @@ type Table struct {
 	widthsChecked bool  // a flag to indicate whether the min/max widths of each column is checked
 
 	// global options set by users
-	align           Align
-	minWidth        int
-	maxWidth        int
-	wrapDelimiter   rune
-	clipCell        bool
-	clipMark        string
-	humanizeNumbers bool
+	align           Align  // text alignment
+	minWidth        int    // minimum width
+	maxWidth        int    // maximum width
+	wrapDelimiter   rune   // delimiter for wrapping cells
+	clipCell        bool   // clip cell instead of wrapping
+	clipMark        string // mark for indicating the cell if clipped
+	humanizeNumbers bool   // add comma to numbers, for example 1000 -> 1,000
 
-	// so reused datastructure, for avoiding allocate objects repeatedly
-	rotate     [][]string  // just for wrapping a row
-	wrappedRow []*[]string // just for wrapping a row
-	slice      []string
-	poolSlice  *sync.Pool
+	// some reused datastructures, for avoiding allocate objects repeatedly
+	slice      []string     // for joining cells of each row
+	rotate     [][]string   // only for wrapping a row
+	wrappedRow []*[]string  // juonlyst for wrapping a row
+	poolSlice  *sync.Pool   // objects pool of string slice which size is the number of columns
+	buf        bytes.Buffer // a bytes buffer
 
 	style *TableStyle // output style
 
-	writer *io.Writer // writer
+	// if the writer is set, the first bufRows rows will  be used to determine
+	// the maximum width for each cell if they are not defined with MaxWidth().
+	writer        io.Writer
+	hasWriter     bool
+	bufRows       int // the number of rows to determine the max/min width of each column
+	bufRowsDumped bool
+	flushed       bool
 }
 
+// New creates a new Table object.
 func New() *Table {
 	t := new(Table)
 	t.style = StylePlain
@@ -101,32 +114,43 @@ func New() *Table {
 
 // --------------------------------------------------------------------------
 
+// Style sets the output style.
+// If you decide to add all rows before rendering, there's no need to call this method.
+// If you want to stream the output, please call this method before adding any rows.
 func (t *Table) Style(style *TableStyle) *Table {
 	t.style = style
 	return t
 }
 
+// ErrInvalidAlign means a invalid align value is given.
 var ErrInvalidAlign = fmt.Errorf("stable: invalid align value")
 
+// AlignLeft sets the global text alignment as Left.
 func (t *Table) AlignLeft() *Table {
 	t.align = AlignLeft
 	return t
 }
+
+// AlignCenter sets the global text alignment as Center.
 func (t *Table) AlignCenter() *Table {
 	t.align = AlignCenter
 	return t
 }
+
+// AlignRight sets the global text alignment as Right.
 func (t *Table) AlignRight() *Table {
 	t.align = AlignRight
 	return t
 }
 
+// Align sets the global text alignment.
+// Only three values are allowed: AlignLeft, AlignCenter, AlignRight.
 func (t *Table) Align(align Align) (*Table, error) {
 	switch align {
-	case AlignCenter:
-		t.align = AlignCenter
 	case AlignLeft:
 		t.align = AlignLeft
+	case AlignCenter:
+		t.align = AlignCenter
 	case AlignRight:
 		t.align = AlignRight
 	default:
@@ -135,36 +159,56 @@ func (t *Table) Align(align Align) (*Table, error) {
 	return t, nil
 }
 
+// MinWidth sets the global minimum cell width.
 func (t *Table) MinWidth(w int) *Table {
-	t.minWidth = w
+	if t.maxWidth > 0 && w > t.maxWidth { // even bigger than t.maxWidth
+		t.minWidth = t.maxWidth
+	} else {
+		t.minWidth = w
+	}
 	return t
 }
 
+// MaxWidth sets the global maximum cell width.
 func (t *Table) MaxWidth(w int) *Table {
-	t.maxWidth = w
+	if t.minWidth > 0 && w < t.minWidth { // even smaller than t.minWidth
+		t.maxWidth = t.minWidth
+	} else {
+		t.maxWidth = w
+	}
 	return t
 }
 
+// WrapDelimiter sets the delimiter for wrapping cell text.
+// The default value is space.
+// Note that in streaming mode (after calling SetWriter())
 func (t *Table) WrapDelimiter(d rune) *Table {
+	if t.hasWriter && t.dataAdded {
+		return t
+	}
 	t.wrapDelimiter = d
 	return t
 }
 
+// ClipCell sets the mark to indicate the cell is clipped.
 func (t *Table) ClipCell(mark string) *Table {
 	t.clipCell = true
 	t.clipMark = mark
 	return t
 }
 
-func (t *Table) HumanizeNumbers(v bool) *Table {
-	t.humanizeNumbers = v
+// HumanizeNumbers makes the numbers more readable by adding commas to numbers. E.g., 1000 -> 1,000.
+func (t *Table) HumanizeNumbers() *Table {
+	t.humanizeNumbers = true
 	return t
 }
 
 // --------------------------------------------------------------------------
+// ErrSetHeaderAfterDataAdded means that setting header is not allowed after some data being added.
 var ErrSetHeaderAfterDataAdded = fmt.Errorf("stable: setting header is not allowed after some data being added")
 
-func (t *Table) SetHeader(headers []string) (*Table, error) {
+// Header sets column names.
+func (t *Table) Header(headers []string) (*Table, error) {
 	if t.dataAdded {
 		return nil, ErrSetHeaderAfterDataAdded
 	}
@@ -179,7 +223,8 @@ func (t *Table) SetHeader(headers []string) (*Table, error) {
 	return t, nil
 }
 
-func (t *Table) SetHeaderWithFormat(headers []Column) (*Table, error) {
+// HeaderWithFormat sets column names and other configuration of the column.
+func (t *Table) HeaderWithFormat(headers []Column) (*Table, error) {
 	if t.dataAdded {
 		return nil, ErrSetHeaderAfterDataAdded
 	}
@@ -189,14 +234,24 @@ func (t *Table) SetHeaderWithFormat(headers []Column) (*Table, error) {
 	return t, nil
 }
 
-var ErrLongRow = fmt.Errorf("stable: the added row has too many columns")
+// ErrUnmatchedColumnNumber means that the column number
+// of the newly added row is not matched with that of previous ones.
+var ErrUnmatchedColumnNumber = fmt.Errorf("stable: unmatched column number")
 
+// parseRow convert a list of objects to string slice
 func (t *Table) parseRow(row []interface{}) ([]string, error) {
 	_row := make([]string, len(row))
 	var err error
 	var s string
+	var humanizeNumbers bool
 	for i, v := range row {
-		s, err = convertToString(v, t.humanizeNumbers)
+		if t.humanizeNumbers {
+			humanizeNumbers = true
+		} else {
+			humanizeNumbers = t.columns[i].HumanizeNumbers
+		}
+
+		s, err = convertToString(v, humanizeNumbers)
 		if err != nil {
 			return nil, err
 		}
@@ -205,15 +260,11 @@ func (t *Table) parseRow(row []interface{}) ([]string, error) {
 	return _row, nil
 }
 
-func (t *Table) addRow(row []interface{}) error {
-	_row, err := t.parseRow(row)
-	if err != nil {
-		return err
-	}
-
+// checkRow checks a row.
+func (t *Table) checkRow(row []interface{}) ([]string, error) {
 	if t.hasHeader {
-		if len(row) > t.nColumns {
-			return ErrLongRow
+		if len(row) != t.nColumns {
+			return nil, ErrUnmatchedColumnNumber
 		}
 	} else if t.columns == nil { // no header and the t.columns is nil
 		t.columns = make([]Column, len(row))
@@ -221,40 +272,251 @@ func (t *Table) addRow(row []interface{}) error {
 			t.columns[i] = Column{}
 		}
 		t.nColumns = len(row)
+	} else { // no header
+		if len(row) != t.nColumns {
+			return nil, ErrUnmatchedColumnNumber
+		}
 	}
 
-	t.rows = append(t.rows, _row)
-	t.dataAdded = true
-
-	return nil
+	return t.parseRow(row)
 }
 
+var ErrAddRowAfterFlush = fmt.Errorf("stable: calling AddRow is not allowed after calling Flush()")
+
+// AddRow adds a row.
 func (t *Table) AddRow(row []interface{}) error {
-	if t.writer == nil {
-		t.addRow(row)
+	if t.hasWriter && t.flushed {
+		return ErrAddRowAfterFlush
+	}
+
+	// just adds it to buffer
+	if !t.hasWriter || len(t.rows) < t.bufRows {
+		_row, err := t.checkRow(row)
+		if err != nil {
+			return err
+		}
+		t.rows = append(t.rows, _row)
+		t.dataAdded = true
+
 		return nil
 	}
 
-	if len(t.rows) < t.bufRows {
-		t.addRow(row)
-	} else if len(t.rows) == t.bufRows {
-		// determin the maxWidth
+	// ------------------------------------------------
+
+	style := t.style
+	if style == nil { // not defined in the object
+		style = StyleGrid
+	}
+
+	buf := t.buf
+	buf.Reset()
+
+	if t.slice == nil {
+		t.slice = make([]string, t.nColumns)
+	}
+	slice := t.slice
+
+	lenPad2 := len(style.Padding) * 2
+	var wrapped bool
+
+	var row2 *[]string
+
+	// ------------------------------------------------
+
+	if t.bufRowsDumped {
+		// ------------------------------------------------
+		// parse and check row
+		_row, err := t.checkRow(row)
+		if err != nil {
+			return err
+		}
+
+		// ------------------------------------------------
+
+		// line between rows
+		if style.LineBetweenRows.Visible() {
+			buf.WriteString(style.LineBetweenRows.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
+			}
+			buf.WriteString(strings.Join(slice, style.LineBetweenRows.sep))
+			buf.WriteString(style.LineBetweenRows.end)
+			buf.WriteString("\n")
+
+			t.writer.Write(buf.Bytes())
+			buf.Reset()
+		}
+
+		// data row
+		wrapped = t.formatRow(_row)
+		if wrapped {
+			for _, row2 = range t.wrappedRow {
+				buf.WriteString(style.DataRow.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
+				}
+				buf.WriteString(strings.Join(slice, style.DataRow.sep))
+				buf.WriteString(style.DataRow.end)
+				buf.WriteString("\n")
+
+				t.writer.Write(buf.Bytes())
+				buf.Reset()
+
+				t.poolSlice.Put(row2)
+			}
+		} else {
+			buf.WriteString(style.DataRow.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
+			}
+			buf.WriteString(strings.Join(slice, style.DataRow.sep))
+			buf.WriteString(style.DataRow.end)
+			buf.WriteString("\n")
+
+			t.writer.Write(buf.Bytes())
+			buf.Reset()
+		}
+
+		return nil
+	}
+
+	// ------------------------------------------------
+
+	if len(t.rows) == t.bufRows {
+		// determine the minWidth and maxWidth
+		t.checkWidths()
+
+		_row, err := t.checkRow(row)
+		if err != nil {
+			return err
+		}
+		t.rows = append(t.rows, _row)
+		t.dataAdded = true
+
+		// write the top line
+		if style.LineTop.Visible() {
+			buf.WriteString(style.LineTop.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = strings.Repeat(style.LineTop.hline, M+lenPad2)
+			}
+			buf.WriteString(strings.Join(slice, style.LineTop.sep))
+			buf.WriteString(style.LineTop.end)
+			buf.WriteString("\n")
+
+			t.writer.Write(buf.Bytes())
+			buf.Reset()
+		}
 
 		// write the header
+		if t.hasHeader {
+			_row := make([]string, t.nColumns)
+			for i, c := range t.columns {
+				_row[i] = c.Header
+			}
+			wrapped = t.formatRow(_row)
+			if wrapped {
+				for _, row2 = range t.wrappedRow {
+					buf.WriteString(style.HeaderRow.begin)
+					for i, M := range t.maxWidths {
+						slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
+					}
+					buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
+					buf.WriteString(style.HeaderRow.end)
+					buf.WriteString("\n")
 
-		// write buffered rows to writer
-	} else {
-		// _row, err := parseRow
+					t.writer.Write(buf.Bytes())
+					buf.Reset()
 
-		// write the row to writer
+					t.poolSlice.Put(row2)
+				}
+			} else {
+				buf.WriteString(style.HeaderRow.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
+				}
+				buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
+				buf.WriteString(style.HeaderRow.end)
+				buf.WriteString("\n")
+
+				t.writer.Write(buf.Bytes())
+				buf.Reset()
+			}
+
+			// line belowHeader
+			if style.LineBelowHeader.Visible() {
+				buf.WriteString(style.LineBelowHeader.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = strings.Repeat(style.LineBelowHeader.hline, M+lenPad2)
+				}
+				buf.WriteString(strings.Join(slice, style.LineBelowHeader.sep))
+				buf.WriteString(style.LineBelowHeader.end)
+				buf.WriteString("\n")
+
+				t.writer.Write(buf.Bytes())
+				buf.Reset()
+			}
+		}
+
+		// write the rows
+		hasLineBetweenRows := style.LineBetweenRows.Visible()
+		for j, _row := range t.rows {
+			// line between rows
+			if hasLineBetweenRows && j > 0 {
+				buf.WriteString(style.LineBetweenRows.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
+				}
+				buf.WriteString(strings.Join(slice, style.LineBetweenRows.sep))
+				buf.WriteString(style.LineBetweenRows.end)
+				buf.WriteString("\n")
+
+				t.writer.Write(buf.Bytes())
+				buf.Reset()
+			}
+
+			// data row
+			wrapped = t.formatRow(_row)
+			if wrapped {
+				for _, row2 = range t.wrappedRow {
+					buf.WriteString(style.DataRow.begin)
+					for i, M := range t.maxWidths {
+						slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
+					}
+					buf.WriteString(strings.Join(slice, style.DataRow.sep))
+					buf.WriteString(style.DataRow.end)
+					buf.WriteString("\n")
+
+					t.writer.Write(buf.Bytes())
+					buf.Reset()
+
+					t.poolSlice.Put(row2)
+				}
+			} else {
+				buf.WriteString(style.DataRow.begin)
+				for i, M := range t.maxWidths {
+					slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
+				}
+				buf.WriteString(strings.Join(slice, style.DataRow.sep))
+				buf.WriteString(style.DataRow.end)
+				buf.WriteString("\n")
+
+				t.writer.Write(buf.Bytes())
+				buf.Reset()
+			}
+		}
+
+		t.bufRowsDumped = true
 	}
+
 	return nil
 }
 
+// formatRow wraps or clips cells.
 // the returned value indicate if any cells are wrapped
 func (t *Table) formatRow(row []string) bool {
 	// -------------------------------------------------------------
 	// initialize some data structures
+
 	if t.rotate == nil {
 		t.rotate = make([][]string, t.nColumns)
 		for i := range t.rotate {
@@ -314,24 +576,23 @@ func (t *Table) formatRow(row []string) bool {
 			continue
 		}
 
+		// ---------------------------------------------------
+		// clip
+
 		if t.clipCell && len(cell) > maxWidth {
 			if lenClipMark > maxWidth {
 				t.clipMark = ""
 				lenClipMark = len(t.clipMark)
 			}
-			t.rotate[i] = append(t.rotate[i], cell[0:maxWidth-lenClipMark]+t.clipMark)
+			t.rotate[i] = append(t.rotate[i], runewidth.Truncate(cell, maxWidth, t.clipMark))
 			continue
 		}
 
+		// ---------------------------------------------------
+		// wrap
+
 		// modify from https://github.com/donatj/wordwrap
-		//
-		// SplitString splits a string at a certain number of bytes without breaking
-		// UTF-8 runes and on Unicode space characters when possible.
-		//
-		// SplitString will panic if it is forced to split a multibyte rune.
-		//
-		// For example if the rune `し` (3 bytes) is given, yet we ask it to break on a
-		// byte limit of 2, it will panic.
+
 		workingLine = ""
 		spacePos.pos = 0
 		spacePos.size = 0
@@ -408,29 +669,33 @@ type charPos struct {
 	pos, size int
 }
 
+// formatCell formats a cell with given width and text alignment.
 func (t *Table) formatCell(text string, width int, align Align) string {
 	a := align
 	if t.align > 0 { // global align
-		a = align
+		a = t.align
 	}
 
+	lenText := runewidth.StringWidth(text)
+
 	// here, width need to be >= len(text)
-	if width-runewidth.StringWidth(text) < 0 {
-		panic("please contact the author")
+	if width-lenText < 0 {
+		panic("wrapping/clipping method error, please contact the author")
 	}
 
 	switch a {
 	case AlignCenter:
-		n := (width - runewidth.StringWidth(text)) / 2
-		return strings.Repeat(" ", n) + text + strings.Repeat(" ", width-runewidth.StringWidth(text)-n)
+		n := (width - lenText) / 2
+		return strings.Repeat(" ", n) + text + strings.Repeat(" ", width-lenText-n)
 	case AlignLeft:
-		return text + strings.Repeat(" ", width-runewidth.StringWidth(text))
+		return text + strings.Repeat(" ", width-lenText)
 	case AlignRight:
-		return strings.Repeat(" ", width-runewidth.StringWidth(text)) + text
+		return strings.Repeat(" ", width-lenText) + text
 	}
-	return text + strings.Repeat(" ", width-runewidth.StringWidth(text))
+	return text + strings.Repeat(" ", width-lenText)
 }
 
+// Render render all data with give style.
 func (t *Table) Render(style *TableStyle) []byte {
 	if style == nil { // the argument not given
 		style = t.style
@@ -439,16 +704,19 @@ func (t *Table) Render(style *TableStyle) []byte {
 		style = StyleGrid
 	}
 
-	var buf bytes.Buffer
+	buf := t.buf
+	buf.Reset()
+
 	if t.slice == nil {
 		t.slice = make([]string, t.nColumns)
 	}
 	slice := t.slice
-	// determin the maxWidth
-	t.checkWidths()
 
 	lenPad2 := len(style.Padding) * 2
 	var wrapped bool
+
+	// determine the minWidth and maxWidth
+	t.checkWidths()
 
 	// write the top line
 	if style.LineTop.Visible() {
@@ -464,11 +732,11 @@ func (t *Table) Render(style *TableStyle) []byte {
 	// write the header
 	var row2 *[]string
 	if t.hasHeader {
-		row := make([]string, t.nColumns)
+		_row := make([]string, t.nColumns)
 		for i, c := range t.columns {
-			row[i] = c.Header
+			_row[i] = c.Header
 		}
-		wrapped = t.formatRow(row)
+		wrapped = t.formatRow(_row)
 		if wrapped {
 			for _, row2 = range t.wrappedRow {
 				buf.WriteString(style.HeaderRow.begin)
@@ -484,7 +752,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 		} else {
 			buf.WriteString(style.HeaderRow.begin)
 			for i, M := range t.maxWidths {
-				slice[i] = style.Padding + t.formatCell(row[i], M, t.columns[i].Align) + style.Padding
+				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
 			}
 			buf.WriteString(strings.Join(slice, style.HeaderRow.sep))
 			buf.WriteString(style.HeaderRow.end)
@@ -503,12 +771,22 @@ func (t *Table) Render(style *TableStyle) []byte {
 		}
 	}
 
-	// write the row to writer
-	jLastLine := len(t.rows) - 1
+	// write the rows
 	hasLineBetweenRows := style.LineBetweenRows.Visible()
-	for j, row := range t.rows {
+	for j, _row := range t.rows {
+		// line between rows
+		if hasLineBetweenRows && j > 0 {
+			buf.WriteString(style.LineBetweenRows.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
+			}
+			buf.WriteString(strings.Join(slice, style.LineBetweenRows.sep))
+			buf.WriteString(style.LineBetweenRows.end)
+			buf.WriteString("\n")
+		}
+
 		// data row
-		wrapped = t.formatRow(row)
+		wrapped = t.formatRow(_row)
 		if wrapped {
 			for _, row2 = range t.wrappedRow {
 				buf.WriteString(style.DataRow.begin)
@@ -524,21 +802,10 @@ func (t *Table) Render(style *TableStyle) []byte {
 		} else {
 			buf.WriteString(style.DataRow.begin)
 			for i, M := range t.maxWidths {
-				slice[i] = style.Padding + t.formatCell(row[i], M, t.columns[i].Align) + style.Padding
+				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
 			}
 			buf.WriteString(strings.Join(slice, style.DataRow.sep))
 			buf.WriteString(style.DataRow.end)
-			buf.WriteString("\n")
-		}
-
-		// line between rows
-		if hasLineBetweenRows && j < jLastLine {
-			buf.WriteString(style.LineBetweenRows.begin)
-			for i, M := range t.maxWidths {
-				slice[i] = strings.Repeat(style.LineBetweenRows.hline, M+lenPad2)
-			}
-			buf.WriteString(strings.Join(slice, style.LineBetweenRows.sep))
-			buf.WriteString(style.LineBetweenRows.end)
 			buf.WriteString("\n")
 		}
 	}
@@ -557,12 +824,14 @@ func (t *Table) Render(style *TableStyle) []byte {
 	return buf.Bytes()
 }
 
+// ErrNoDataAdded means not data is added. Not used.
 var ErrNoDataAdded = fmt.Errorf("stable: no data added")
 
+// checkWidths determine the minimum and maximum widths of each column.
 func (t *Table) checkWidths() error {
-	if t.hasHeader && !t.dataAdded {
-		return ErrNoDataAdded
-	}
+	// if t.hasHeader && !t.dataAdded {
+	// 	return ErrNoDataAdded
+	// }
 
 	t.minWidths = make([]int, t.nColumns)
 	for i := range t.minWidths {
@@ -614,6 +883,10 @@ func (t *Table) checkWidths() error {
 		if t.minWidth > 0 && t.minWidth > t.minWidths[i] { // use user defined global threshold
 			t.minWidths[i] = t.minWidth
 		}
+
+		if t.maxWidths[i] < t.minWidths[i] {
+			t.maxWidths[i] = t.minWidths[i]
+		}
 	}
 
 	t.widthsChecked = true
@@ -623,25 +896,75 @@ func (t *Table) checkWidths() error {
 
 // --------------------------------------------------------------------------
 
+// ErrWriterRepeatedlySet means that the writer is repeatedly set.
 var ErrWriterRepeatedlySet = fmt.Errorf("stable: writer repeatedly set")
 
-// SetWriter sets a writer for render the table, the first bufRows rows will
-// be used to determin the maximum width for each cell if they are not defined
+// Writer sets a writer for render the table. The first bufRows rows will
+// be used to determine the maximum width for each cell if they are not defined
 // with MaxWidth().
-func (t *Table) SetWriter(w *io.Writer, bufRows int) error {
-	if t.writer != nil {
+// So a newly added row (Addrow()) is formatted and written to the configured writer immediately.
+// It is memory-effective for a large number of rows.
+// And it is helpful to pipe the data in shell.
+// Do not forget to call Flush() after adding all rows.
+func (t *Table) Writer(w io.Writer, bufRows uint) error {
+	if t.hasWriter {
 		return ErrWriterRepeatedlySet
 	}
 	t.writer = w
+	t.hasWriter = true
+	if bufRows < 1 { // can not be 0
+		bufRows = 1
+	}
 	t.rows = make([][]string, 0, bufRows)
-	t.bufRows = bufRows
+	t.bufRows = int(bufRows)
 
 	return nil
 }
 
-func (t *Table) Flush() error {
-	// write the bottom line
+// Flush dumps the remaining data.
+func (t *Table) Flush() {
+	t.flushed = true
 
-	t.Flush()
-	return nil
+	style := t.style
+	if style == nil { // not defined in the object
+		style = StyleGrid
+	}
+
+	buf := t.buf
+	buf.Reset()
+
+	if t.slice == nil {
+		t.slice = make([]string, t.nColumns)
+	}
+	slice := t.slice
+
+	lenPad2 := len(style.Padding) * 2
+
+	// ------------------------------------------------
+	// only need to append the bottown line
+
+	if t.bufRowsDumped {
+		// bottom line
+		if style.LineBottom.Visible() {
+			buf.WriteString(style.LineBottom.begin)
+			for i, M := range t.maxWidths {
+				slice[i] = strings.Repeat(style.LineBottom.hline, M+lenPad2)
+			}
+			buf.WriteString(strings.Join(slice, style.LineBottom.sep))
+			buf.WriteString(style.LineBottom.end)
+			buf.WriteString("\n")
+
+			t.writer.Write(buf.Bytes())
+			buf.Reset()
+		}
+		return
+	}
+
+	// ------------------------------------------------
+	// dump all buffered line
+
+	t.writer.Write(t.Render(style))
+	buf.Reset()
+
+	return
 }

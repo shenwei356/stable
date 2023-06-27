@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 package stable
 
+// The data structures are similar to these in https://github.com/bndr/gotabulate.
 type TableStyle struct {
 	Name string
 
