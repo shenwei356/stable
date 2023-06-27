@@ -945,8 +945,8 @@ func (t *Table) checkWidths() error {
 			t.maxWidths[i] = t.maxWidth
 		}
 
-		if t.maxWidths[i] < 5 {
-			t.maxWidths[i] = 5
+		if t.maxWidths[i] < 1 {
+			t.maxWidths[i] = 1
 		}
 
 		if c.MinWidth > 0 && c.MinWidth > t.minWidths[i] { // use user defined threshold
