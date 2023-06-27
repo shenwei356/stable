@@ -12,19 +12,28 @@
 
 ## Features
 
-- Supporting streaming output.
+- **Supporting streaming output**.
+
   A newly added row is formatted and written to the configured writer immediately.
   It is memory-effective for a large number of rows.
   And it is helpful to pipe the data in shell.
-- Supporting wrapping text or clipping text.
+
+- **Supporting wrapping text or clipping text**.
+
   The minimum and maximum width of the column can be configured for each column or globally.
-- Configured table styles. Some preset styles are also provided.
+
+- **Configured table styles**.
+
+  Some preset styles are also provided.
 
 ## Install
 
     go get -u github.com/shenwei356/table
 
 ## Examples
+
+<p style="color:Tomato;">Note that the output is well-formatted in the terminal.
+However, rows containing Unicode are not displayed appropriately in text editors.</p>
 
 1. Basic usages.
 
@@ -176,79 +185,79 @@
 
 ## Styles
 
-Note that the output is well-formatted in the terminal.
-However, rows containing Unicode are not displayed appropriately in text editors.
+<p style="color:Tomato;">Note that the output is well-formatted in the terminal.
+However, rows containing Unicode are not displayed appropriately in text editors.</p>
 
-        style: plain
-        number    name       sentence
-        100       Wei Shen   How are you?
-        1,000.1   沈 伟      I'm fine, thank
-                            you. And you?
-        100,000   沈伟       谢谢，我很好
-                            ，你呢？
+    style: plain
+    number    name       sentence
+    100       Wei Shen   How are you?
+    1,000.1   沈 伟      I'm fine, thank
+                        you. And you?
+    100,000   沈伟       谢谢，我很好
+                        ，你呢？
 
-        style: simple
-        -------------------------------------------
-        number    name       sentence
-        -------------------------------------------
-        100       Wei Shen   How are you?
-        1,000.1   沈 伟      I'm fine, thank
-                            you. And you?
-        100,000   沈伟       谢谢，我很好
-                            ，你呢？
-        -------------------------------------------
+    style: simple
+    -------------------------------------------
+    number    name       sentence
+    -------------------------------------------
+    100       Wei Shen   How are you?
+    1,000.1   沈 伟      I'm fine, thank
+                        you. And you?
+    100,000   沈伟       谢谢，我很好
+                        ，你呢？
+    -------------------------------------------
 
-        style: grid
-        +---------+----------+----------------------+
-        | number  | name     | sentence             |
-        +=========+==========+======================+
-        | 100     | Wei Shen | How are you?         |
-        +---------+----------+----------------------+
-        | 1,000.1 | 沈 伟    | I'm fine, thank      |
-        |         |          | you. And you?        |
-        +---------+----------+----------------------+
-        | 100,000 | 沈伟     | 谢谢，我很好         |
-        |         |          | ，你呢？             |
-        +---------+----------+----------------------+
+    style: grid
+    +---------+----------+----------------------+
+    | number  | name     | sentence             |
+    +=========+==========+======================+
+    | 100     | Wei Shen | How are you?         |
+    +---------+----------+----------------------+
+    | 1,000.1 | 沈 伟    | I'm fine, thank      |
+    |         |          | you. And you?        |
+    +---------+----------+----------------------+
+    | 100,000 | 沈伟     | 谢谢，我很好         |
+    |         |          | ，你呢？             |
+    +---------+----------+----------------------+
 
-        style: light
-        ┌---------┬----------┬----------------------┐
-        | number  | name     | sentence             |
-        ├=========┼==========┼======================┤
-        | 100     | Wei Shen | How are you?         |
-        ├---------┼----------┼----------------------┤
-        | 1,000.1 | 沈 伟    | I'm fine, thank      |
-        |         |          | you. And you?        |
-        ├---------┼----------┼----------------------┤
-        | 100,000 | 沈伟     | 谢谢，我很好         |
-        |         |          | ，你呢？             |
-        └---------┴----------┴----------------------┘
+    style: light
+    ┌---------┬----------┬----------------------┐
+    | number  | name     | sentence             |
+    ├=========┼==========┼======================┤
+    | 100     | Wei Shen | How are you?         |
+    ├---------┼----------┼----------------------┤
+    | 1,000.1 | 沈 伟    | I'm fine, thank      |
+    |         |          | you. And you?        |
+    ├---------┼----------┼----------------------┤
+    | 100,000 | 沈伟     | 谢谢，我很好         |
+    |         |          | ，你呢？             |
+    └---------┴----------┴----------------------┘
 
-        style: bold
-        ┏━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
-        ┃ number  ┃ name     ┃ sentence             ┃
-        ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-        ┃ 100     ┃ Wei Shen ┃ How are you?         ┃
-        ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-        ┃ 1,000.1 ┃ 沈 伟    ┃ I'm fine, thank      ┃
-        ┃         ┃          ┃ you. And you?        ┃
-        ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
-        ┃ 100,000 ┃ 沈伟     ┃ 谢谢，我很好         ┃
-        ┃         ┃          ┃ ，你呢？             ┃
-        ┗━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━┛
+    style: bold
+    ┏━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+    ┃ number  ┃ name     ┃ sentence             ┃
+    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 100     ┃ Wei Shen ┃ How are you?         ┃
+    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 1,000.1 ┃ 沈 伟    ┃ I'm fine, thank      ┃
+    ┃         ┃          ┃ you. And you?        ┃
+    ┣━━━━━━━━━╋━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 100,000 ┃ 沈伟     ┃ 谢谢，我很好         ┃
+    ┃         ┃          ┃ ，你呢？             ┃
+    ┗━━━━━━━━━┻━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━┛
 
-        style: double
-        ╔═════════╦══════════╦══════════════════════╗
-        ║ number  ║ name     ║ sentence             ║
-        ╠═════════╬══════════╬══════════════════════╣
-        ║ 100     ║ Wei Shen ║ How are you?         ║
-        ╠═════════╬══════════╬══════════════════════╣
-        ║ 1,000.1 ║ 沈 伟    ║ I'm fine, thank      ║
-        ║         ║          ║ you. And you?        ║
-        ╠═════════╬══════════╬══════════════════════╣
-        ║ 100,000 ║ 沈伟     ║ 谢谢，我很好         ║
-        ║         ║          ║ ，你呢？             ║
-        ╚═════════╩══════════╩══════════════════════╝
+    style: double
+    ╔═════════╦══════════╦══════════════════════╗
+    ║ number  ║ name     ║ sentence             ║
+    ╠═════════╬══════════╬══════════════════════╣
+    ║ 100     ║ Wei Shen ║ How are you?         ║
+    ╠═════════╬══════════╬══════════════════════╣
+    ║ 1,000.1 ║ 沈 伟    ║ I'm fine, thank      ║
+    ║         ║          ║ you. And you?        ║
+    ╠═════════╬══════════╬══════════════════════╣
+    ║ 100,000 ║ 沈伟     ║ 谢谢，我很好         ║
+    ║         ║          ║ ，你呢？             ║
+    ╚═════════╩══════════╩══════════════════════╝
 
 
 ## Support
