@@ -79,13 +79,14 @@ type Table struct {
 	widthsChecked bool  // a flag to indicate whether the min/max widths of each column is checked
 
 	// global options set by users
-	align           Align  // text alignment
-	minWidth        int    // minimum width
-	maxWidth        int    // maximum width
-	wrapDelimiter   rune   // delimiter for wrapping cells
-	clipCell        bool   // clip cell instead of wrapping
-	clipMark        string // mark for indicating the cell if clipped
-	humanizeNumbers bool   // add comma to numbers, for example 1000 -> 1,000
+	align             Align  // text alignment
+	minWidth          int    // minimum width
+	hasGlobalMinWidth bool   // minWidth is set
+	maxWidth          int    // maximum width
+	wrapDelimiter     rune   // delimiter for wrapping cells
+	clipCell          bool   // clip cell instead of wrapping
+	clipMark          string // mark for indicating the cell if clipped
+	humanizeNumbers   bool   // add comma to numbers, for example 1000 -> 1,000
 
 	// some reused datastructures, for avoiding allocate objects repeatedly
 	slice      []string     // for joining cells of each row
@@ -166,6 +167,7 @@ func (t *Table) MinWidth(w int) *Table {
 	} else {
 		t.minWidth = w
 	}
+	t.hasGlobalMinWidth = true
 	return t
 }
 
@@ -346,7 +348,7 @@ func (t *Table) AddRow(row []interface{}) error {
 		if style.LineBetweenRows.Visible() {
 			buf.WriteString(style.LineBetweenRows.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = strings.Repeat(style.LineBetweenRows.Hline, M+lenPad2)
@@ -365,7 +367,7 @@ func (t *Table) AddRow(row []interface{}) error {
 			for _, row2 = range t.wrappedRow {
 				buf.WriteString(style.DataRow.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
@@ -382,7 +384,7 @@ func (t *Table) AddRow(row []interface{}) error {
 		} else {
 			buf.WriteString(style.DataRow.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
@@ -415,7 +417,7 @@ func (t *Table) AddRow(row []interface{}) error {
 		if style.LineTop.Visible() {
 			buf.WriteString(style.LineTop.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = strings.Repeat(style.LineTop.Hline, M+lenPad2)
@@ -439,7 +441,7 @@ func (t *Table) AddRow(row []interface{}) error {
 				for _, row2 = range t.wrappedRow {
 					buf.WriteString(style.HeaderRow.Begin)
 					for i, M := range t.maxWidths {
-						if M < t.minWidths[i] {
+						if t.hasGlobalMinWidth && M < t.minWidths[i] {
 							M = t.minWidths[i]
 						}
 						slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
@@ -456,7 +458,7 @@ func (t *Table) AddRow(row []interface{}) error {
 			} else {
 				buf.WriteString(style.HeaderRow.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
@@ -473,7 +475,7 @@ func (t *Table) AddRow(row []interface{}) error {
 			if style.LineBelowHeader.Visible() {
 				buf.WriteString(style.LineBelowHeader.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = strings.Repeat(style.LineBelowHeader.Hline, M+lenPad2)
@@ -494,7 +496,7 @@ func (t *Table) AddRow(row []interface{}) error {
 			if hasLineBetweenRows && j > 0 {
 				buf.WriteString(style.LineBetweenRows.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = strings.Repeat(style.LineBetweenRows.Hline, M+lenPad2)
@@ -513,7 +515,7 @@ func (t *Table) AddRow(row []interface{}) error {
 				for _, row2 = range t.wrappedRow {
 					buf.WriteString(style.DataRow.Begin)
 					for i, M := range t.maxWidths {
-						if M < t.minWidths[i] {
+						if t.hasGlobalMinWidth && M < t.minWidths[i] {
 							M = t.minWidths[i]
 						}
 						slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
@@ -530,7 +532,7 @@ func (t *Table) AddRow(row []interface{}) error {
 			} else {
 				buf.WriteString(style.DataRow.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
@@ -769,7 +771,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 	if style.LineTop.Visible() {
 		buf.WriteString(style.LineTop.Begin)
 		for i, M := range t.maxWidths {
-			if M < t.minWidths[i] {
+			if t.hasGlobalMinWidth && M < t.minWidths[i] {
 				M = t.minWidths[i]
 			}
 			slice[i] = strings.Repeat(style.LineTop.Hline, M+lenPad2)
@@ -791,7 +793,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 			for _, row2 = range t.wrappedRow {
 				buf.WriteString(style.HeaderRow.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
@@ -805,7 +807,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 		} else {
 			buf.WriteString(style.HeaderRow.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
@@ -819,7 +821,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 		if style.LineBelowHeader.Visible() {
 			buf.WriteString(style.LineBelowHeader.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = strings.Repeat(style.LineBelowHeader.Hline, M+lenPad2)
@@ -837,7 +839,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 		if hasLineBetweenRows && j > 0 {
 			buf.WriteString(style.LineBetweenRows.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = strings.Repeat(style.LineBetweenRows.Hline, M+lenPad2)
@@ -853,7 +855,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 			for _, row2 = range t.wrappedRow {
 				buf.WriteString(style.DataRow.Begin)
 				for i, M := range t.maxWidths {
-					if M < t.minWidths[i] {
+					if t.hasGlobalMinWidth && M < t.minWidths[i] {
 						M = t.minWidths[i]
 					}
 					slice[i] = style.Padding + t.formatCell((*row2)[i], M, t.columns[i].Align) + style.Padding
@@ -867,7 +869,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 		} else {
 			buf.WriteString(style.DataRow.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = style.Padding + t.formatCell(_row[i], M, t.columns[i].Align) + style.Padding
@@ -882,7 +884,7 @@ func (t *Table) Render(style *TableStyle) []byte {
 	if style.LineBottom.Visible() {
 		buf.WriteString(style.LineBottom.Begin)
 		for i, M := range t.maxWidths {
-			if M < t.minWidths[i] {
+			if t.hasGlobalMinWidth && M < t.minWidths[i] {
 				M = t.minWidths[i]
 			}
 			slice[i] = strings.Repeat(style.LineBottom.Hline, M+lenPad2)
@@ -958,6 +960,9 @@ func (t *Table) checkWidths() error {
 	}
 	t.widthsChecked = true
 
+	// fmt.Println(t.minWidths)
+	// fmt.Println(t.maxWidths)
+
 	return nil
 }
 
@@ -1015,7 +1020,7 @@ func (t *Table) Flush() {
 		if style.LineBottom.Visible() {
 			buf.WriteString(style.LineBottom.Begin)
 			for i, M := range t.maxWidths {
-				if M < t.minWidths[i] {
+				if t.hasGlobalMinWidth && M < t.minWidths[i] {
 					M = t.minWidths[i]
 				}
 				slice[i] = strings.Repeat(style.LineBottom.Hline, M+lenPad2)
