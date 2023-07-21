@@ -2,6 +2,9 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/shenwei356/stable.svg)](https://pkg.go.dev/github.com/shenwei356/stable)
 
+If you just need an executable tool to format tables, please use `csvtk pretty`
+([code](https://github.com/shenwei356/csvtk), [usage and example](https://bioinf.shenwei.me/csvtk/usage/#pretty)),
+which uses this package.
 
 Table of Contents
 
@@ -30,6 +33,11 @@ Table of Contents
   Some [preset styles](#styles) are also provided.
 
 - **Unicode supported**
+
+
+Not-supported features:
+- Row/column span
+- Colorful text
 
 ## Install
 
@@ -335,3 +343,4 @@ Copyright (c) 2023, Wei Shen (shenwei356@gmail.com)
 - [go-pretty](https://github.com/jedib0t/go-pretty),
   it supports wrapping cells, but it has to read all data in memory before outputing the result.
   We used some table styles with minor differences in this package.
+- [table](https://github.com/clinaresl/table), it renders colorful texts, and supports Multicolumns and nested tables.
