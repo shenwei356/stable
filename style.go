@@ -73,6 +73,18 @@ var StyleSimple = &TableStyle{
 	Padding:   " ",
 }
 
+var StyleThreeLine = &TableStyle{
+	Name: "3line",
+
+	LineTop:         LineStyle{"", "━", "━", ""},
+	LineBelowHeader: LineStyle{"", "-", "-", ""},
+	LineBottom:      LineStyle{"", "━", "━", ""},
+
+	HeaderRow: RowStyle{"", " ", ""},
+	DataRow:   RowStyle{"", " ", ""},
+	Padding:   " ",
+}
+
 var StyleGrid = &TableStyle{
 	Name: "grid",
 

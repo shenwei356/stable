@@ -42,6 +42,7 @@ func TestBasic(t *testing.T) {
 	for _, style := range []*TableStyle{
 		StylePlain,
 		StyleSimple,
+		StyleThreeLine,
 		StyleGrid,
 		StyleLight,
 		StyleBold,

@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.1.4 - 2023-08-18
+    - added a new style: StyleThreeLine (tree-line table).
 - v0.1.3 - 2023-08-18
     - do not set hasHeader with true if all headers are empty strings.
     - added a new method: HasHeaders.
