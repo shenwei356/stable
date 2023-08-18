@@ -221,7 +221,16 @@ func (t *Table) Header(headers []string) (*Table, error) {
 		}
 	}
 	t.nColumns = len(headers)
-	t.hasHeader = true
+
+	hasNonEmptyHeader := false
+	for _, header := range headers {
+		if header != "" {
+			hasNonEmptyHeader = true
+			break
+		}
+	}
+	t.hasHeader = hasNonEmptyHeader
+
 	return t, nil
 }
 
@@ -232,8 +241,24 @@ func (t *Table) HeaderWithFormat(headers []Column) (*Table, error) {
 	}
 	t.columns = headers
 	t.nColumns = len(headers)
-	t.hasHeader = true
+
+	hasNonEmptyHeader := false
+	for _, header := range headers {
+		if header.Header != "" {
+			hasNonEmptyHeader = true
+			break
+		}
+	}
+	t.hasHeader = hasNonEmptyHeader
+
 	return t, nil
+}
+
+// HasHeaders tell whether the table has an available header line.
+// It may return false even if you have called Header() or HeaderWithFormat(),
+// when all headers are empty strings.
+func (t *Table) HasHeaders() bool {
+	return t.hasHeader
 }
 
 // ErrUnmatchedColumnNumber means that the column number
