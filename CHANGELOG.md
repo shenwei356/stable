@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.1.5 - 2023-11-24
+    - replace tabs in cells with spaces.
 - v0.1.4 - 2023-08-18
     - added a new style: StyleThreeLine (tree-line table).
 - v0.1.3 - 2023-08-18

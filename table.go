@@ -754,6 +754,12 @@ func (t *Table) formatCell(text string, width int, align Align) string {
 		panic("wrapping/clipping method error, please contact the author")
 	}
 
+	// replace tabs with spaces
+	if strings.Contains(text, "\t") {
+		lenText += strings.Count(text, "\t")
+		text = strings.ReplaceAll(text, "\t", " ")
+	}
+
 	var out string
 	switch a {
 	case AlignCenter:

@@ -35,6 +35,8 @@ func TestBasic(t *testing.T) {
 	})
 	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
 	tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
+	tbl.AddRow([]interface{}{250, "with	tab", "<-left cell has one tab."})
+	tbl.AddRow([]interface{}{250, "with		tab", "<-left cell has two tabs."})
 	tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
 	// fmt.Printf("%s\n", tbl.Render(StyleGrid))
@@ -62,6 +64,7 @@ func TestUnicode(t *testing.T) {
 	})
 	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
 	tbl.AddRow([]interface{}{1000, "沈 伟", "I'm fine, thank you. And you?"})
+	tbl.AddRow([]interface{}{1000, "沈	伟", "There's one tab between the two words"})
 	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
 
 	fmt.Printf("%s\n", tbl.Render(StyleGrid))
