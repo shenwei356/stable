@@ -1004,7 +1004,7 @@ var ErrWriterRepeatedlySet = fmt.Errorf("stable: writer repeatedly set")
 
 // Writer sets a writer for render the table. The first bufRows rows will
 // be used to determine the maximum width for each cell if they are not defined
-// with MaxWidth().
+// with MaxWidth(). bufRows should be in range of [1,1M].
 // So a newly added row (Addrow()) is formatted and written to the configured writer immediately.
 // It is memory-effective for a large number of rows.
 // And it is helpful to pipe the data in shell.
@@ -1017,6 +1017,9 @@ func (t *Table) Writer(w io.Writer, bufRows uint) error {
 	t.hasWriter = true
 	if bufRows < 1 { // can not be 0
 		bufRows = 1
+	}
+	if bufRows > 1<<20 {
+		bufRows = 1 << 20
 	}
 	t.rows = make([][]string, 0, bufRows)
 	t.bufRows = int(bufRows)
