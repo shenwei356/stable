@@ -1,6 +1,8 @@
 # Changelog
 
-- v0.1.6 - 2023-11-24
+- v0.1.7 - 2023-11-23
+    - if the perameter bufRows in method Writer is 0, all data will be kept in memory
+- v0.1.6 - 2023-11-23
     - set the upbound of the number of buffer rows as 1 million.
 - v0.1.5 - 2023-11-24
     - replace tabs in cells with spaces.

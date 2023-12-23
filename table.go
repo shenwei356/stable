@@ -101,7 +101,8 @@ type Table struct {
 	// the maximum width for each cell if they are not defined with MaxWidth().
 	writer        io.Writer
 	hasWriter     bool
-	bufRows       int // the number of rows to determine the max/min width of each column
+	bufRows       int  // the number of rows to determine the max/min width of each column
+	bufAll        bool // when bufRows is 0, just buffer all data
 	bufRowsDumped bool
 	flushed       bool
 }
@@ -326,7 +327,7 @@ func (t *Table) AddRow(row []interface{}) error {
 	}
 
 	// just adds it to buffer
-	if !t.hasWriter || len(t.rows) < t.bufRows {
+	if !t.hasWriter || t.bufAll || len(t.rows) < t.bufRows {
 		_row, err := t.checkRow(row)
 		if err != nil {
 			return err
@@ -1005,6 +1006,7 @@ var ErrWriterRepeatedlySet = fmt.Errorf("stable: writer repeatedly set")
 // Writer sets a writer for render the table. The first bufRows rows will
 // be used to determine the maximum width for each cell if they are not defined
 // with MaxWidth(). bufRows should be in range of [1,1M].
+// If bufRows is 0, it keeps all data in buffer.
 // So a newly added row (Addrow()) is formatted and written to the configured writer immediately.
 // It is memory-effective for a large number of rows.
 // And it is helpful to pipe the data in shell.
@@ -1015,10 +1017,10 @@ func (t *Table) Writer(w io.Writer, bufRows uint) error {
 	}
 	t.writer = w
 	t.hasWriter = true
-	if bufRows < 1 { // can not be 0
-		bufRows = 1
-	}
-	if bufRows > 1<<20 {
+	if bufRows == 0 {
+		t.bufAll = true
+		bufRows = 1024
+	} else if bufRows > 1<<20 {
 		bufRows = 1 << 20
 	}
 	t.rows = make([][]string, 0, bufRows)
