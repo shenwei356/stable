@@ -243,36 +243,43 @@ However, rows containing Unicode are not displayed appropriately in text editors
     100         Donec Vitae          Quis autem vel eum iure reprehenderit
                                      qui in ea voluptate velit esse.
     2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
+    250         with tab             <-left cell has one tab.
+    250         with  tab            <-left cell has two tabs.
     3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
                                      Nam eget dui. Etiam rhoncus. Maecenas
                                      tempus, tellus eget condimentum
                                      rhoncus, sem quam semper libero.
 
+
     style: simple
     ---------------------------------------------------------------------------
-    id          name                 sentence
+     id          name                 sentence
     ---------------------------------------------------------------------------
-    100         Donec Vitae          Quis autem vel eum iure reprehenderit
-                                    qui in ea voluptate velit esse.
-    2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
-    3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
-                                    Nam eget dui. Etiam rhoncus. Maecenas
-                                    tempus, tellus eget condimentum
-                                    rhoncus, sem quam semper libero.
+     100         Donec Vitae          Quis autem vel eum iure reprehenderit
+                                      qui in ea voluptate velit esse.
+     2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
+     250         with tab             <-left cell has one tab.
+     250         with  tab            <-left cell has two tabs.
+     3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
+                                      Nam eget dui. Etiam rhoncus. Maecenas
+                                      tempus, tellus eget condimentum
+                                      rhoncus, sem quam semper libero.
     ---------------------------------------------------------------------------
 
 
     style: 3line
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    id          name                 sentence
+     id          name                 sentence
     ---------------------------------------------------------------------------
-    100         Donec Vitae          Quis autem vel eum iure reprehenderit
-                                    qui in ea voluptate velit esse.
-    2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
-    3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
-                                    Nam eget dui. Etiam rhoncus. Maecenas
-                                    tempus, tellus eget condimentum
-                                    rhoncus, sem quam semper libero.
+     100         Donec Vitae          Quis autem vel eum iure reprehenderit
+                                      qui in ea voluptate velit esse.
+     2,000       Quaerat Voluptatem   At vero eos et accusamus et iusto odio.
+     250         with tab             <-left cell has one tab.
+     250         with  tab            <-left cell has two tabs.
+     3,000,000   Aliquam lorem        Curabitur ullamcorper ultricies nisi.
+                                      Nam eget dui. Etiam rhoncus. Maecenas
+                                      tempus, tellus eget condimentum
+                                      rhoncus, sem quam semper libero.
     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 
@@ -284,6 +291,10 @@ However, rows containing Unicode are not displayed appropriately in text editors
     |           |                    | qui in ea voluptate velit esse.          |
     +-----------+--------------------+------------------------------------------+
     | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
+    +-----------+--------------------+------------------------------------------+
+    | 250       | with tab           | <-left cell has one tab.                 |
+    +-----------+--------------------+------------------------------------------+
+    | 250       | with  tab          | <-left cell has two tabs.                |
     +-----------+--------------------+------------------------------------------+
     | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
     |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
@@ -300,6 +311,10 @@ However, rows containing Unicode are not displayed appropriately in text editors
     ├-----------┼--------------------┼------------------------------------------┤
     | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
     ├-----------┼--------------------┼------------------------------------------┤
+    | 250       | with tab           | <-left cell has one tab.                 |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 250       | with  tab          | <-left cell has two tabs.                |
+    ├-----------┼--------------------┼------------------------------------------┤
     | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
     |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
     |           |                    | tempus, tellus eget condimentum          |
@@ -315,6 +330,10 @@ However, rows containing Unicode are not displayed appropriately in text editors
     ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
     ┃ 2,000     ┃ Quaerat Voluptatem ┃ At vero eos et accusamus et iusto odio.  ┃
     ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 250       ┃ with tab           ┃ <-left cell has one tab.                 ┃
+    ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
+    ┃ 250       ┃ with  tab          ┃ <-left cell has two tabs.                ┃
+    ┣━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫
     ┃ 3,000,000 ┃ Aliquam lorem      ┃ Curabitur ullamcorper ultricies nisi.    ┃
     ┃           ┃                    ┃ Nam eget dui. Etiam rhoncus. Maecenas    ┃
     ┃           ┃                    ┃ tempus, tellus eget condimentum          ┃
@@ -329,6 +348,10 @@ However, rows containing Unicode are not displayed appropriately in text editors
     ║           ║                    ║ qui in ea voluptate velit esse.          ║
     ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
     ║ 2,000     ║ Quaerat Voluptatem ║ At vero eos et accusamus et iusto odio.  ║
+    ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
+    ║ 250       ║ with tab           ║ <-left cell has one tab.                 ║
+    ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
+    ║ 250       ║ with  tab          ║ <-left cell has two tabs.                ║
     ╠═══════════╬════════════════════╬══════════════════════════════════════════╣
     ║ 3,000,000 ║ Aliquam lorem      ║ Curabitur ullamcorper ultricies nisi.    ║
     ║           ║                    ║ Nam eget dui. Etiam rhoncus. Maecenas    ║
