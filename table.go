@@ -972,10 +972,9 @@ func (t *Table) checkWidths() error {
 	}
 
 	for i, c := range t.columns {
-		if c.MaxWidth > 0 && c.MaxWidth < t.maxWidths[i] { // use user defined threshold
+		if c.MaxWidth > 0 { // use user defined column threshold
 			t.maxWidths[i] = c.MaxWidth
-		}
-		if t.maxWidth > 0 && t.maxWidth < t.maxWidths[i] { // use user defined global threshold
+		} else if t.maxWidth > 0 { // use user defined global threshold
 			t.maxWidths[i] = t.maxWidth
 		}
 
@@ -983,10 +982,9 @@ func (t *Table) checkWidths() error {
 			t.maxWidths[i] = 1
 		}
 
-		if c.MinWidth > 0 && c.MinWidth > t.minWidths[i] { // use user defined threshold
+		if c.MinWidth > 0 { // use user defined column threshold
 			t.minWidths[i] = c.MinWidth
-		}
-		if t.minWidth > 0 { // use user defined global threshold
+		} else if t.minWidth > 0 { // use user defined global threshold
 			t.minWidths[i] = t.minWidth
 		}
 	}
