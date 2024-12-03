@@ -23,12 +23,13 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 )
 
-// from https://github.com/tatsushid/go-prettytable
-func convertToString(v interface{}, addComma bool) (string, error) {
+// from https://github.com/tatsushid/go-prettytable, with little changes
+func (t *Table) convertToString(v interface{}, addComma bool) (string, error) {
 	if addComma {
 		switch vv := v.(type) {
 		case fmt.Stringer:
@@ -60,11 +61,11 @@ func convertToString(v interface{}, addComma bool) (string, error) {
 		case bool:
 			return strconv.FormatBool(vv), nil
 		case string:
-			return vv, nil
+			return t.convertCharacters(vv), nil
 		case []byte:
-			return string(vv), nil
+			return t.convertCharacters(string(vv)), nil
 		case []rune:
-			return string(vv), nil
+			return t.convertCharacters(string(vv)), nil
 		default:
 			return "", errors.New("can't convert the value")
 		}
@@ -100,14 +101,23 @@ func convertToString(v interface{}, addComma bool) (string, error) {
 	case bool:
 		return strconv.FormatBool(vv), nil
 	case string:
-		return vv, nil
+		return t.convertCharacters(vv), nil
 	case []byte:
-		return string(vv), nil
+		return t.convertCharacters(string(vv)), nil
 	case []rune:
-		return string(vv), nil
+		return t.convertCharacters(string(vv)), nil
 	default:
 		return "", errors.New("can't convert the value")
 	}
+}
+
+func (t *Table) convertCharacters(v string) string {
+	if len(t.convTable) > 0 {
+		for from, to := range t.convTable {
+			v = strings.ReplaceAll(v, from, to)
+		}
+	}
+	return v
 }
 
 func max(a, b int) int {

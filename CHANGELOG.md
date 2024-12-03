@@ -1,5 +1,8 @@
 # Changelog
 
+- v0.2.0 - 2024-12-03
+    - Column-specific MinWidth and MaxWidth override the global options. [#2](https://github.com/shenwei356/stable/pull/2/)
+    - Added a new method `Convert` for converting special characters, such as "\t". [#1](https://github.com/shenwei356/stable/issues/1)
 - v0.1.7 - 2023-11-23
     - if the perameter bufRows in method Writer is 0, all data will be kept in memory
 - v0.1.6 - 2023-11-23

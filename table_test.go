@@ -71,11 +71,11 @@ func TestUnicode(t *testing.T) {
 }
 
 func TestCustomColumns(t *testing.T) {
-	tbl := New()
+	tbl := New().MinWidth(10).MaxWidth(30)
 
 	tbl.HeaderWithFormat([]Column{
-		{Header: "number", MinWidth: 10, MaxWidth: 15, HumanizeNumbers: true, Align: AlignRight},
-		{Header: "name", MinWidth: 10, MaxWidth: 15, Align: AlignCenter},
+		{Header: "number", MinWidth: 5, MaxWidth: 20, HumanizeNumbers: true, Align: AlignRight},
+		{Header: "name", MinWidth: 14, MaxWidth: 25, Align: AlignCenter},
 		{Header: "sentence", MaxWidth: 40, Align: AlignLeft},
 	})
 	tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
