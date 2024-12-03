@@ -61,6 +61,7 @@ var DefaultConversionTable = map[string]string{
 	"\v": " ",
 	"\f": " ",
 	"\a": "",
+	"\b": "",
 }
 
 // Column is the configuration of a column.
@@ -951,7 +952,9 @@ func (t *Table) checkWidths() error {
 			t.maxWidths[i] = c.MaxWidth
 		}
 
+		// Make sure t.maxWidths[i] is >= t.minWidths[i]
 		if t.maxWidths[i] < t.minWidths[i] {
+			// t.maxWidths[i] will be the final column width to format the column
 			t.maxWidths[i] = t.minWidths[i]
 		}
 
