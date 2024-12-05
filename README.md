@@ -124,36 +124,39 @@ However, rows containing Unicode are not displayed appropriately in text editors
     ![](screenshot2.png)
 
 
-1. Custom columns format.
+1. Custom columns format. (Column-specific width options override the global ones)
 
-        tbl := New()
+        tbl := New().MinWidth(10).MaxWidth(30)
 
         tbl.HeaderWithFormat([]Column{
-            {Header: "number", MinWidth: 5, MaxWidth: 10, HumanizeNumbers: true, Align: AlignRight},
-            {Header: "name", MinWidth: 10, MaxWidth: 16, Align: AlignCenter},
+            {Header: "number", MinWidth: 5, MaxWidth: 20, HumanizeNumbers: true, Align: AlignRight},
+            {Header: "name", MinWidth: 14, MaxWidth: 25, Align: AlignCenter},
             {Header: "sentence", MaxWidth: 40, Align: AlignLeft},
         })
+	
         tbl.AddRow([]interface{}{100, "Donec Vitae", "Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse."})
         tbl.AddRow([]interface{}{2000, "Quaerat Voluptatem", "At vero eos et accusamus et iusto odio."})
         tbl.AddRow([]interface{}{3000000, "Aliquam lorem", "Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero."})
 
         fmt.Printf("%s\n", tbl.Render(StyleGrid))
-
-        +------------+-----------------+------------------------------------------+
-        |     number |      name       | sentence                                 |
-        +============+=================+==========================================+
-        |        100 |   Donec Vitae   | Quis autem vel eum iure reprehenderit    |
-        |            |                 | qui in ea voluptate velit esse.          |
-        +------------+-----------------+------------------------------------------+
-        |      2,000 |    Quaerat      | At vero eos et accusamus et iusto odio.  |
-        |            |   Voluptatem    |                                          |
-        +------------+-----------------+------------------------------------------+
-        |  3,000,000 |  Aliquam lorem  | Curabitur ullamcorper ultricies nisi.    |
-        |            |                 | Nam eget dui. Etiam rhoncus. Maecenas    |
-        |            |                 | tempus, tellus eget condimentum          |
-        |            |                 | rhoncus, sem quam semper libero.         |
-        +------------+-----------------+------------------------------------------+
-
+        
+        +------------+--------------------+--------------------------------+
+        |     number |        name        | sentence                       |
+        +============+====================+================================+
+        |        100 |    Donec Vitae     | Quis autem vel eum iure        |
+        |            |                    | reprehenderit qui in ea        |
+        |            |                    | voluptate velit esse.          |
+        +------------+--------------------+--------------------------------+
+        |      2,000 | Quaerat Voluptatem | At vero eos et accusamus et    |
+        |            |                    | iusto odio.                    |
+        +------------+--------------------+--------------------------------+
+        |  3,000,000 |   Aliquam lorem    | Curabitur ullamcorper          |
+        |            |                    | ultricies nisi. Nam eget dui.  |
+        |            |                    | Etiam rhoncus. Maecenas        |
+        |            |                    | tempus, tellus eget            |
+        |            |                    | condimentum rhoncus, sem quam  |
+        |            |                    | semper libero.                 |
+        +------------+--------------------+--------------------------------+
 
 
 1. Streaming the output, i.e., a newly added row is formatted and written to the configured writer immediately.
@@ -320,6 +323,26 @@ However, rows containing Unicode are not displayed appropriately in text editors
     |           |                    | tempus, tellus eget condimentum          |
     |           |                    | rhoncus, sem quam semper libero.         |
     └-----------┴--------------------┴------------------------------------------┘
+    
+    style: round
+    
+    ╭-----------┬--------------------┬------------------------------------------╮
+    | id        | name               | sentence                                 |
+    ├===========┼====================┼==========================================┤
+    | 100       | Donec Vitae        | Quis autem vel eum iure reprehenderit    |
+    |           |                    | qui in ea voluptate velit esse.          |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 2,000     | Quaerat Voluptatem | At vero eos et accusamus et iusto odio.  |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 250       | with tab           | <-left cell has one tab.                 |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 250       | with  tab          | <-left cell has two tabs.                |
+    ├-----------┼--------------------┼------------------------------------------┤
+    | 3,000,000 | Aliquam lorem      | Curabitur ullamcorper ultricies nisi.    |
+    |           |                    | Nam eget dui. Etiam rhoncus. Maecenas    |
+    |           |                    | tempus, tellus eget condimentum          |
+    |           |                    | rhoncus, sem quam semper libero.         |
+    ╰-----------┴--------------------┴------------------------------------------╯
 
     style: bold
     ┏━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -367,7 +390,7 @@ propose new functions or ask for help.
 
 ## License
 
-Copyright (c) 2023, Wei Shen (shenwei356@gmail.com)
+Copyright (c) 2023-2024, Wei Shen (shenwei356@gmail.com)
 
 [MIT License](https://github.com/shenwei356/stable/blob/master/LICENSE)
 

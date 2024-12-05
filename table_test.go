@@ -1,4 +1,4 @@
-// Copyright © 2023 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2023-2024 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -47,6 +47,7 @@ func TestBasic(t *testing.T) {
 		StyleThreeLine,
 		StyleGrid,
 		StyleLight,
+		StyleRound,
 		StyleBold,
 		StyleDouble,
 	} {
