@@ -126,3 +126,12 @@ func max(a, b int) int {
 	}
 	return b
 }
+
+func hasUnicode(s string) bool {
+	for _, r := range s {
+		if r > 127 {
+			return true
+		}
+	}
+	return false
+}

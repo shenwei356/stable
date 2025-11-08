@@ -71,6 +71,22 @@ func TestUnicode(t *testing.T) {
 	fmt.Printf("%s\n", tbl.Render(StyleGrid))
 }
 
+func TestUnicode2(t *testing.T) {
+	tbl := New().HumanizeNumbers().MaxWidth(1) //.ClipCell("...")
+
+	tbl.Header([]string{
+		"id",
+		"name",
+		"s",
+	})
+	tbl.AddRow([]interface{}{100, "Wei Shen", "How are you?"})
+	tbl.AddRow([]interface{}{1000, "沈 伟", "I'm fine, thank you. And you?"})
+	tbl.AddRow([]interface{}{1000, "沈	伟", "There's one tab between the two words"})
+	tbl.AddRow([]interface{}{100000, "沈伟", "谢谢，我很好，你呢？"})
+
+	fmt.Printf("%s\n", tbl.Render(StyleGrid))
+}
+
 func TestCustomColumns(t *testing.T) {
 	tbl := New().MinWidth(10).MaxWidth(30)
 

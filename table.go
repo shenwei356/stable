@@ -96,6 +96,7 @@ type Table struct {
 	minWidth        int    // minimum width
 	maxWidth        int    // maximum width
 	wrapDelimiter   rune   // delimiter for wrapping cells
+	wrapDelimiterS  string // the string format of wrapDelimiter
 	clipCell        bool   // clip cell instead of wrapping
 	clipMark        string // mark for indicating the cell if clipped
 	humanizeNumbers bool   // add comma to numbers, for example 1000 -> 1,000
@@ -202,6 +203,7 @@ func (t *Table) WrapDelimiter(d rune) *Table {
 		return t
 	}
 	t.wrapDelimiter = d
+	t.wrapDelimiterS = string(d)
 	return t
 }
 
@@ -598,6 +600,7 @@ func (t *Table) formatRow(row []string) bool {
 
 	if t.wrapDelimiter == 0 {
 		t.wrapDelimiter = ' '
+		t.wrapDelimiterS = " "
 	}
 
 	// -------------------------------------------------------------
@@ -630,6 +633,8 @@ func (t *Table) formatRow(row []string) bool {
 		if maxWidth < t.minWidth {
 			maxWidth = t.minWidth
 		}
+
+		cell = strings.Trim(cell, t.wrapDelimiterS)
 
 		if len(cell) <= maxWidth {
 			t.rotate[i] = append(t.rotate[i], cell)
@@ -685,7 +690,7 @@ func (t *Table) formatRow(row []string) bool {
 				}
 
 				if len(t.rotate[i][len(t.rotate[i])-1]) > maxWidth {
-					panic("attempted to cut character")
+					panic("attempted to cut character, please set a bigger maxWidth")
 				}
 
 				spacePos.pos = 0
@@ -901,6 +906,7 @@ func (t *Table) checkWidths() error {
 		t.minWidths[i] = math.MaxInt
 	}
 	t.maxWidths = make([]int, t.nColumns)
+	hasUnicodes := make([]bool, t.nColumns)
 
 	var i, l int
 	var c Column
@@ -912,6 +918,10 @@ func (t *Table) checkWidths() error {
 			}
 			if l < t.minWidths[i] {
 				t.minWidths[i] = l
+			}
+
+			if !hasUnicodes[i] && hasUnicode(c.Header) {
+				hasUnicodes[i] = true
 			}
 		}
 	}
@@ -925,6 +935,10 @@ func (t *Table) checkWidths() error {
 			}
 			if l < t.minWidths[i] {
 				t.minWidths[i] = l
+			}
+
+			if !hasUnicodes[i] && hasUnicode(v) {
+				hasUnicodes[i] = true
 			}
 		}
 	}
@@ -956,6 +970,10 @@ func (t *Table) checkWidths() error {
 		if t.maxWidths[i] < t.minWidths[i] {
 			// t.maxWidths[i] will be the final column width to format the column
 			t.maxWidths[i] = t.minWidths[i]
+		}
+
+		if hasUnicodes[i] && t.maxWidths[i] < 3 {
+			t.maxWidths[i] = 3
 		}
 
 		// fmt.Printf("coloumn %d: min-width: %d, max-width: %d\n",
