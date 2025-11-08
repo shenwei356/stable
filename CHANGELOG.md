@@ -1,5 +1,7 @@
 # Changelog
 
+- v0.2.1 - 2025-11-09
+    - Fix formating unicode text.
 - v0.2.0 - 2024-12-05
     - Column-specific MinWidth and MaxWidth override the global options. [#2](https://github.com/shenwei356/stable/pull/2/)
     - Added a new method `Convert` for converting special characters, such as "\t". [#1](https://github.com/shenwei356/stable/issues/1)

@@ -108,6 +108,8 @@ type Table struct {
 	poolSlice  *sync.Pool   // objects pool of string slice which size is the number of columns
 	buf        bytes.Buffer // a bytes buffer
 
+	workingLine strings.Builder
+
 	style *TableStyle // output style
 
 	// if the writer is set, the first bufRows rows will  be used to determine
@@ -623,7 +625,9 @@ func (t *Table) formatRow(row []string) bool {
 
 	var i, j int
 	var cell string
-	var workingLine string
+	// var workingLine string
+	workingLine := t.workingLine
+	var workingLineStr string
 	var spacePos charPos
 	var lastPos charPos
 	lenClipMark := len(t.clipMark)
@@ -658,7 +662,8 @@ func (t *Table) formatRow(row []string) bool {
 
 		// modify from https://github.com/donatj/wordwrap
 
-		workingLine = ""
+		// workingLine = ""
+		workingLine.Reset()
 		spacePos.pos = 0
 		spacePos.size = 0
 		lastPos.pos = 0
@@ -667,25 +672,38 @@ func (t *Table) formatRow(row []string) bool {
 		for _, r = range cell {
 			w = utf8.RuneLen(r)
 
-			workingLine += string(r)
+			// workingLine += string(r)
+			workingLine.WriteRune(r)
 
 			if r == t.wrapDelimiter {
-				spacePos.pos = len(workingLine)
+				// spacePos.pos = len(workingLine)
+				spacePos.pos = workingLine.Len()
 				spacePos.size = w
 			}
 
-			if len(workingLine) >= maxWidth {
+			// if len(workingLine) >= maxWidth {
+			workingLineStr = workingLine.String()
+			if len(workingLineStr) >= maxWidth {
 				if spacePos.size > 0 {
-					t.rotate[i] = append(t.rotate[i], workingLine[0:spacePos.pos])
+					// t.rotate[i] = append(t.rotate[i], workingLine[0:spacePos.pos])
+					t.rotate[i] = append(t.rotate[i], workingLineStr[0:spacePos.pos])
 
-					workingLine = workingLine[spacePos.pos:]
+					// workingLine = workingLine[spacePos.pos:]
+					workingLine.Reset()
+					workingLine.WriteString(workingLineStr[spacePos.pos:])
 				} else {
-					if len(workingLine) > maxWidth {
-						t.rotate[i] = append(t.rotate[i], workingLine[0:lastPos.pos])
-						workingLine = workingLine[lastPos.pos:]
+					// f len(workingLine) > maxWidth {
+					if len(workingLineStr) > maxWidth {
+						// t.rotate[i] = append(t.rotate[i], workingLine[0:lastPos.pos])
+						// workingLine = workingLine[lastPos.pos:]
+						t.rotate[i] = append(t.rotate[i], workingLineStr[0:lastPos.pos])
+						workingLine.Reset()
+						workingLine.WriteString(workingLineStr[lastPos.pos:])
 					} else {
-						t.rotate[i] = append(t.rotate[i], workingLine)
-						workingLine = ""
+						// t.rotate[i] = append(t.rotate[i], workingLine)
+						t.rotate[i] = append(t.rotate[i], workingLineStr)
+						// workingLine = ""
+						workingLine.Reset()
 					}
 				}
 
@@ -697,12 +715,15 @@ func (t *Table) formatRow(row []string) bool {
 				spacePos.size = 0
 			}
 
-			lastPos.pos = len(workingLine)
+			// lastPos.pos = len(workingLine)
+			lastPos.pos = len(workingLine.String())
 			lastPos.size = w
 		}
 
-		if workingLine != "" {
-			t.rotate[i] = append(t.rotate[i], workingLine)
+		// if workingLine != "" {
+		if workingLine.Len() > 0 {
+			// t.rotate[i] = append(t.rotate[i], workingLine)
+			t.rotate[i] = append(t.rotate[i], workingLine.String())
 		}
 	}
 
