@@ -1,4 +1,4 @@
-// Copyright © 2023-2024 Wei Shen <shenwei356@gmail.com>
+// Copyright © 2023-2026 Wei Shen <shenwei356@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -77,7 +77,7 @@ var StyleThreeLine = &TableStyle{
 	Name: "3line",
 
 	LineTop:         LineStyle{"", "━", "━", ""},
-	LineBelowHeader: LineStyle{"", "-", "-", ""},
+	LineBelowHeader: LineStyle{"", "─", "─", ""},
 	LineBottom:      LineStyle{"", "━", "━", ""},
 
 	HeaderRow: RowStyle{"", " ", ""},
@@ -111,16 +111,29 @@ var StyleLight = &TableStyle{
 	Padding:   " ",
 }
 
+var StyleRegular = &TableStyle{
+	Name: "regular",
+
+	LineTop:         LineStyle{"┌", "─", "┬", "┐"},
+	LineBelowHeader: LineStyle{"├", "─", "┼", "┤"},
+	LineBetweenRows: LineStyle{"├", "─", "┼", "┤"},
+	LineBottom:      LineStyle{"└", "─", "┴", "┘"},
+
+	HeaderRow: RowStyle{"│", "│", "│"},
+	DataRow:   RowStyle{"│", "│", "│"},
+	Padding:   " ",
+}
+
 var StyleRound = &TableStyle{
 	Name: "round",
 
-	LineTop:         LineStyle{"╭", "-", "┬", "╮"},
-	LineBelowHeader: LineStyle{"├", "=", "┼", "┤"},
-	LineBetweenRows: LineStyle{"├", "-", "┼", "┤"},
-	LineBottom:      LineStyle{"╰", "-", "┴", "╯"},
+	LineTop:         LineStyle{"╭", "─", "┬", "╮"},
+	LineBelowHeader: LineStyle{"├", "─", "┼", "┤"},
+	LineBetweenRows: LineStyle{"├", "─", "┼", "┤"},
+	LineBottom:      LineStyle{"╰", "─", "┴", "╯"},
 
-	HeaderRow: RowStyle{"|", "|", "|"},
-	DataRow:   RowStyle{"|", "|", "|"},
+	HeaderRow: RowStyle{"│", "│", "│"},
+	DataRow:   RowStyle{"│", "│", "│"},
 	Padding:   " ",
 }
 

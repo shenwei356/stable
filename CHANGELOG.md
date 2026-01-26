@@ -1,5 +1,8 @@
 # Changelog
 
+- v0.3.0 - 2026-01-26
+    - Add a new style `StyleRegular`.
+    - Adjust styles `StyleThreeLine` and `StyleRound`.
 - v0.2.1 - 2025-11-09
     - Fix formating unicode text.
 - v0.2.0 - 2024-12-05
